@@ -4,19 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str; // Jangan lupa import ini
+use Illuminate\Support\Str; 
 
 class Review extends Model
 {
     use HasFactory;
 
-    // 1. Matikan Auto Increment bawaan (karena kita pakai String)
     public $incrementing = false;
 
-    // 2. Beritahu tipe data Primary Key adalah String
     protected $keyType = 'string';
 
-    // 3. Daftarkan kolom yang boleh diisi (Mass Assignment)
     protected $fillable = [
         'produk_id',
         'rating',
@@ -27,24 +24,30 @@ class Review extends Model
         'provinsiPengunjung',
     ];
 
-    // 4. Buat ID otomatis terisi UUID saat data dibuat
+    public const PROVINSI = [
+        'Nanggroe Aceh Darussalam', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau',
+        'Jambi', 'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Bangka Belitung',
+        'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten',
+        'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur',
+        'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara',
+        'Sulawesi Utara', 'Sulawesi Tengah', 'Sulawesi Selatan', 'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat',
+        'Maluku', 'Maluku Utara',
+        'Papua', 'Papua Barat', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan', 'Papua Barat Daya'
+    ];
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($model) {
             if (empty($model->{$model->getKeyName()})) {
-                // Mengisi ID dengan UUID (contoh: 550e8400-e29b-41d4-a716-446655440000)
                 $model->{$model->getKeyName()} = (string) Str::uuid();
             }
         });
     }
 
-    // 5. Relasi ke Produk (Opsional, buat jaga-jaga)
     public function produk()
     {
-        // Asumsi nama model produkmu adalah 'Product' atau 'Produk'
-        // Sesuaikan dengan nama class model produk kamu
         return $this->belongsTo(Produk::class, 'produk_id'); 
     }
 }
