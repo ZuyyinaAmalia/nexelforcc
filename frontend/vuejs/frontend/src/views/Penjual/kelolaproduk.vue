@@ -13,10 +13,13 @@ const formData = ref({
   kategori: '',
   harga: '',
   stok: '',
+  kondisi:'',
   deskripsi: '',
   gambar: ''
 });
 
+const imageFile = ref(null);
+const imagePreview = ref('');
 const searchQuery = ref('');
 
 onMounted(() => {
@@ -32,6 +35,7 @@ const loadProducts = () => {
       nama: 'Laptop Gaming ASUS ROG',
       kategori: 'Elektronik',
       harga: 15000000,
+      kondisi:'Baru',
       stok: 10,
       deskripsi: 'Laptop gaming dengan performa tinggi',
       gambar: 'https://via.placeholder.com/150'
@@ -41,6 +45,7 @@ const loadProducts = () => {
       nama: 'Mouse Wireless Logitech',
       kategori: 'Aksesoris',
       harga: 250000,
+      kondisi:'Baru',
       stok: 50,
       deskripsi: 'Mouse wireless dengan koneksi stabil',
       gambar: 'https://via.placeholder.com/150'
@@ -57,6 +62,7 @@ const openAddModal = () => {
 const openEditModal = (product) => {
   modalMode.value = 'edit';
   formData.value = { ...product };
+  imagePreview.value = product.gambar || '';
   showModal.value = true;
 };
 
@@ -71,10 +77,33 @@ const resetForm = () => {
     nama: '',
     kategori: '',
     harga: '',
+    kondisi:'',
     stok: '',
     deskripsi: '',
     gambar: ''
   };
+  imageFile.value = null;
+  imagePreview.value = '';
+};
+
+const handleImageChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    imageFile.value = file;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const removeImage = () => {
+  imageFile.value = null;
+  imagePreview.value = '';
+  formData.value.gambar = '';
 };
 
 const handleSubmit = () => {
@@ -167,6 +196,7 @@ const filteredProducts = computed(() => {
               <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Produk</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
               <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
             </tr>
@@ -187,6 +217,14 @@ const filteredProducts = computed(() => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                 {{ formatRupiah(product.harga) }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="[
+                  'px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
+                  product.kondisi === 'Baru' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                ]">
+                  {{ product.kondisi }}
+                </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="[
@@ -264,19 +302,18 @@ const filteredProducts = computed(() => {
                   />
                 </div>
                 
-                <div>
-                  <label for="kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                  <input
-                    v-model="formData.kategori"
-                    type="text"
-                    id="kategori"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Masukkan kategori"
-                  />
-                </div>
-                
                 <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label for="kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                    <input
+                      v-model="formData.kategori"
+                      type="text"
+                      id="kategori"
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Masukkan kategori"
+                    />
+                  </div>
                   <div>
                     <label for="harga" class="block text-sm font-medium text-gray-700 mb-1">Harga</label>
                     <input
@@ -287,6 +324,22 @@ const filteredProducts = computed(() => {
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       placeholder="0"
                     />
+                  </div>                  
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label for="kondisi" class="block text-sm font-medium text-gray-700 mb-1">Kondisi</label>
+                    <select
+                      v-model="formData.kondisi"
+                      id="kondisi"
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="" disabled>Pilih kondisi</option>
+                      <option value="Baru">Baru</option>
+                      <option value="Bekas">Bekas</option>
+                    </select>
                   </div>
                   
                   <div>
@@ -312,6 +365,48 @@ const filteredProducts = computed(() => {
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     placeholder="Masukkan deskripsi produk"
                   ></textarea>
+                </div>
+                
+                <!-- Upload Gambar -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Gambar Produk</label>
+                  
+                  <!-- Preview Area -->
+                  <div v-if="imagePreview" class="mb-3">
+                    <div class="relative inline-block">
+                      <img :src="imagePreview" alt="Preview" class="w-40 h-40 object-cover rounded-lg border-2 border-gray-300" />
+                      <button
+                        type="button"
+                        @click="removeImage"
+                        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors duration-200"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Upload Button -->
+                  <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+                      <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-10 h-10 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p class="mb-1 text-sm text-gray-500">
+                          <span class="font-semibold">Klik untuk upload</span> atau drag and drop
+                        </p>
+                        <p class="text-xs text-gray-500">PNG, JPG, JPEG (MAX. 2MB)</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        class="hidden" 
+                        accept="image/png,image/jpeg,image/jpg"
+                        @change="handleImageChange"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

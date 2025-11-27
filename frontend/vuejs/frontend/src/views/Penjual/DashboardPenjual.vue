@@ -177,7 +177,7 @@ const handleLogout = async () => {
                 <p class="text-gray-600 mt-2">Selamat datang di dashboard penjual NEXEL</p>
               </div>
               
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow duration-200">
                   <div class="flex items-center justify-between">
                     <div>
@@ -193,7 +193,7 @@ const handleLogout = async () => {
                   </div>
                 </div>
                 
-                <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow duration-200">
+                <!-- <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow duration-200">
                   <div class="flex items-center justify-between">
                     <div>
                       <p class="text-sm text-gray-600 font-medium">Total Penjualan</p>
@@ -206,7 +206,7 @@ const handleLogout = async () => {
                       </svg>
                     </div>
                   </div>
-                </div>
+                </div> -->
                 
                 <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow duration-200">
                   <div class="flex items-center justify-between">
