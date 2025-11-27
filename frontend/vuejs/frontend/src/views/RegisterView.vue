@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { penjualRegister } from '@/services';
+import { penjualRegister } from '@/services/api';
 
 const router = useRouter();
 const isLoading = ref(false);

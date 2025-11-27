@@ -38,7 +38,7 @@ const router = createRouter({
       path: '/dashboard-penjual',
       name: 'dashboard-penjual',
       component: DashboardPenjual,
-      // meta: { requiresAuth: true, role: 'penjual' },
+      meta: { requiresAuth: true, role: 'penjual' },
       children: [
         {
           path: 'kelolaproduk',
