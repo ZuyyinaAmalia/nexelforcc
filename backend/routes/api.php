@@ -97,26 +97,11 @@ Route::prefix('penjual')->group(function () {
         Route::post('/logout', [PenjualController::class, 'logout']);
         
         // ----- PROFILE PENJUAL -----
-        Route::get('/profile', function (Request $request) {
-            return response()->json([
-                'data' => $request->user()->load('alamat')
-            ]);
-        });
-        Route::put('/profile', [PenjualController::class, 'update']);
+        Route::get('/profile', [PenjualController::class, 'profile']);
+        Route::put('/profile', [PenjualController::class, 'updateProfile']);
         
         // ----- DASHBOARD STATS (untuk halaman dashboard penjual) -----
-        Route::get('/dashboard/stats', function (Request $request) {
-            $penjual = $request->user();
-            
-            return response()->json([
-                'data' => [
-                    'total_produk' => $penjual->produks()->count(),
-                    'total_penjualan' => 0, // TODO: hitung dari tabel transaksi
-                    'pesanan_baru' => 0, // TODO: hitung dari tabel pesanan
-                    'aktivitas_terbaru' => [] // TODO: ambil dari log aktivitas
-                ]
-            ]);
-        });
+        Route::get('/dashboard/stats', [PenjualController::class, 'dashboardStats']);
         
         // ----- KELOLA PRODUK PENJUAL -----
         Route::prefix('produk')->group(function () {

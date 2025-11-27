@@ -323,11 +323,24 @@ Authorization: Bearer {token}
 **Response:**
 ```json
 {
+  "success": true,
   "data": {
     "total_produk": 10,
     "total_penjualan": 5000000,
     "pesanan_baru": 3,
-    "aktivitas_terbaru": []
+    "aktivitas_terbaru": [
+      {
+        "judul": "Produk Ditambahkan",
+        "deskripsi": "Produk 'Laptop Gaming' berhasil ditambahkan",
+        "waktu": "2 jam yang lalu",
+        "type": "produk"
+      }
+    ],
+    "penjual": {
+      "nama": "John Doe",
+      "toko": "Toko John",
+      "status": "ACTIVE"
+    }
   }
 }
 ```
