@@ -90,7 +90,10 @@ export const deletePenjual = (id) => api.delete(`/admin/penjuals/${id}`)
 // =========================================================================
 
 // ----- PENJUAL AUTH -----
-export const penjualRegister = (data) => api.post('/penjual/register', data)
+export const penjualRegister = (data) => 
+  api.post('/penjual/register', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 export const penjualLogin = (data) => api.post('/penjual/login', data)
 export const penjualLogout = () => api.post('/penjual/logout')
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { penjualRegister } from '@/services';
 
 const router = useRouter();
 const isLoading = ref(false);
@@ -140,10 +140,7 @@ const handleRegister = async () => {
     if (fileKtp.value) formData.append('fotoKtp', fileKtp.value);
 
     try {
-        // Sesuaikan URL dengan Backend Laravel kamu
-        await axios.post('http://127.0.0.1:8000/api/register-penjual', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await penjualRegister(formData);
 
         alert("Registrasi Berhasil! Silakan Login.");
         router.push('/login');

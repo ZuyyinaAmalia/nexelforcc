@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { penjualLogin } from '@/services';
 
 const router = useRouter();
 
@@ -17,9 +17,8 @@ const handleLogin = async () => {
   isLoading.value = true;
 
   try {
-    // 1. Tembak API Login
-    // Ganti URL sesuai alamat server Laravel kamu
-    const response = await axios.post('http://127.0.0.1:8000/api/login-penjual', {
+    // 1. Tembak API Login menggunakan penjualLogin dari api.js
+    const response = await penjualLogin({
       email: email.value,
       password: password.value
     });
@@ -27,14 +26,15 @@ const handleLogin = async () => {
     // 2. Ambil token & user dari response
     const { access_token, user } = response.data;
 
-    // 3. Simpan Token di LocalStorage
+    // 3. Simpan Token & User Data di LocalStorage
     localStorage.setItem('token', access_token);
     localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('role', 'penjual');
+    localStorage.setItem('nama_penjual', user.namaPenjual || 'Penjual');
 
-    // 4. Redirect ke Dashboard (Buat halaman ini nanti)
+    // 4. Redirect langsung ke Dashboard
     console.log("Login Sukses:", user);
-    router.push('/dashboard-penjual'); 
-    alert("Login Berhasil! Token tersimpan.");
+    router.push('/dashboard-penjual');
 
   } catch (error: any) {
     if (error.response && error.response.status === 401) {

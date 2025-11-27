@@ -62,16 +62,21 @@ onMounted(async () => {
     activeMenu.value = 'home';
   }
   
-  // Set dummy data for testing tanpa auth
-  if (!localStorage.getItem('nama_penjual')) {
-    localStorage.setItem('nama_penjual', 'Demo Penjual');
+  // Check authentication
+  const token = localStorage.getItem('token');
+  if (!token) {
+    router.push('/login');
+    return;
   }
   
-  // Fetch data dari backend dengan error handling
+  // Fetch data user yang login dari backend
   try {
     await Promise.all([
       penjualStore.fetchProfile().catch(err => {
         console.warn('Failed to fetch profile:', err);
+        // Jika gagal fetch profile, gunakan data dari localStorage
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        penjualStore.profile = userData;
         return null;
       }),
       penjualStore.fetchDashboardStats().catch(err => {
