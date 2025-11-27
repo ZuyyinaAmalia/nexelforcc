@@ -13,26 +13,23 @@ return new class extends Migration
     {
         Schema::create('penjuals', function (Blueprint $table) {
             $table->id();
-            // Kolom dari Diagram Penjual
-            $table->string('nik', 16) -> unique();
-            $table->string('email') -> unique();
-            $table->string('namaToko') -> unique();
-            $table->text('deskripsiToko');
-            $table->string('namaPenjual') -> unique();
-            $table->string('noHp') -> unique();
-            $table->string('foto');
-            $table->string('fotoKtp');
 
-            // Kolom Status (Mengimplementasikan StatusPenjual Enum)
+            $table->string('nik', 16)->unique();
+            $table->string('email')->unique();
+            $table->string('namaToko');
+            $table->text('deskripsiToko')->nullable();
+            $table->string('namaPenjual');
+            $table->string('noHp')->nullable();
+            $table->string('foto')->nullable();
+            $table->string('fotoKtp')->nullable();
+
             $table->enum('status', ['PENDING', 'ACTIVE', 'INACTIVE', 'REJECTED'])->default('PENDING');
 
-            // Kolom Password
-            $table->string('password'); // Password harus di-hash (bcrypt) sebelum disimpan
-
-            // Kolom Timestamp
-            $table->timestamps(); // Ini sudah mencakup created_at dan updated_at
+            $table->string('password');
+            $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.

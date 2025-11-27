@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Penjual;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
+
 
 class PenjualController extends Controller
 {
@@ -33,24 +35,39 @@ class PenjualController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nik' => ['required', 'string', 'max:50', 'unique:penjuals,nik'],
-            'email' => ['required', 'email', 'max:255', 'unique:penjuals,email'],
-            'namaToko' => ['required', 'string', 'max:255'],
-            'deskripsiToko' => ['nullable', 'string'],
-            'namaPenjual' => ['required', 'string', 'max:255'],
-            'noHp' => ['nullable', 'string', 'max:30'],
-            'foto' => ['nullable', 'string'],
-            'fotoKtp' => ['nullable', 'string'],
-            'status' => ['nullable', 'in:active,inactive,pending'],
-            'password' => ['required', 'string', 'min:6'],
-            'alamat_id' => ['nullable', 'exists:alamats,id'],
+            'nik' => 'required|string|max:50|unique:penjuals,nik',
+            'email' => 'required|email|max:255|unique:penjuals,email',
+            'namaToko' => 'required|string|max:255',
+            'deskripsiToko' => 'nullable|string',
+            'namaPenjual' => 'required|string|max:255',
+            'noHp' => 'nullable|string|max:30',
+            'foto' => 'nullable|string',
+            'fotoKtp' => 'nullable|string',
+            'status' => 'nullable|in:PENDING,ACTIVE,INACTIVE,REJECTED',
+            'password' => 'required|string|min:6',
         ]);
 
-        $penjual = Penjual::create($data);
+        $penjual = Penjual::create([
+            'nik' => $data['nik'],
+            'email' => $data['email'],
+            'namaToko' => $data['namaToko'],
+            'deskripsiToko' => $data['deskripsiToko'] ?? null,
+            'namaPenjual' => $data['namaPenjual'],
+            'noHp' => $data['noHp'] ?? null,
+            'foto' => $data['foto'] ?? null,
+            'fotoKtp' => $data['fotoKtp'] ?? null,
+            'status' => $data['status'] ?? 'PENDING',
+            'password' => Hash::make($data['password']),
+        ]);
 
-        return response()->json($penjual->load(['alamat', 'produks']), 201);
+        return response()->json([
+            'message' => 'Penjual berhasil ditambahkan',
+            'data' => $penjual,
+        ], 201);
     }
 
+
+    
     /**
      * Update existing penjual.
      */
