@@ -16,10 +16,10 @@ class ProdukController extends Controller
     {
         // Jika ada user yang login (penjual), filter produk berdasarkan penjual
         if ($request->user() && method_exists($request->user(), 'produks')) {
-            $produk = $request->user()->produks()->with('kategori')->get();
+            $produk = $request->user()->produks()->with(['penjual', 'kategori'])->get();
         } else {
             // Jika public atau admin, tampilkan semua produk
-            $produk = Produk::with('kategori')->get();
+            $produk = Produk::with(['penjual', 'kategori'])->get();
         }
 
         if($produk->count() > 0){
@@ -41,6 +41,7 @@ class ProdukController extends Controller
             'stok' => 'nullable|integer|min:0',
             'fotoProduk' => 'nullable|string',
             'kategori_id' => 'nullable|integer',
+            'statusProduk' => 'required|in:Baru,Bekas',
         ]);
 
         // Auto-assign penjual_id jika user adalah penjual
@@ -61,6 +62,7 @@ class ProdukController extends Controller
      */
     public function show(Produk $produk)
     {
+        $produk->load(['penjual', 'kategori', 'reviews']);
         return response()->json($produk);
     }
 
@@ -70,12 +72,13 @@ class ProdukController extends Controller
     public function update(Request $request, Produk $produk)
     {
         $data = $request->validate([
-            'namaProduk' => 'sometimes|required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'harga' => 'sometimes|required|numeric|min:0',
-            'stok' => 'nullable|integer|min:0',
-            'fotoProduk' => 'nullable|string',
-            'kategori_id' => 'nullable|integer',
+        'namaProduk' => 'sometimes|required|string|max:255',
+        'deskripsi' => 'nullable|string',
+        'harga' => 'sometimes|required|numeric|min:0',
+        'stok' => 'nullable|integer|min:0',
+        'fotoProduk' => 'nullable|string',
+        'kategori_id' => 'nullable|integer',
+        'statusProduk' => 'sometimes|required|in:Baru,Bekas',
         ]);
 
         $produk->update($data);

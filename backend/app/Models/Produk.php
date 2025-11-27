@@ -17,17 +17,14 @@ class Produk extends Model
         'stok',
         'fotoProduk',
         'kategori_id',
-        'penjual_id', // Tambahkan ini
+        'penjual_id',
+        'statusProduk',
     ];
 
     protected $casts = [
         'harga' => 'decimal:2',
         'stok' => 'integer',
     ];
-    
-    /**
-     * RELATIONSHIPS
-     */
     
     // 1 produk wajib punya 1 kategori
     public function kategori()
@@ -39,5 +36,11 @@ class Produk extends Model
     public function penjual()
     {
         return $this->belongsTo(Penjual::class);
+    }
+    
+    // ⭐ RELASI KE ULASAN (REVIEWS)
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'produk_id');
     }
 }

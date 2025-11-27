@@ -5,14 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str; 
+// Hapus 'use Illuminate\Support\Str;' jika tidak dipakai di tempat lain
+// Tapi kita biarkan saja karena mungkin dipakai untuk hal lain.
 
 class Review extends Model
 {
     use HasFactory;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
+    // KONFIGURASI UUID DIHAPUS agar menggunakan ID integer standar Laravel:
+    // protected $keyType = 'string'; // Dihapus
+    // public $incrementing = false;  // Dihapus
 
     protected $fillable = [
         'produk_id',
@@ -35,19 +37,21 @@ class Review extends Model
         'Papua', 'Papua Barat', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan', 'Papua Barat Daya'
     ];
 
+    // Fungsi boot() yang menghasilkan UUID DIHAPUS
+    /*
     protected static function boot()
     {
         parent::boot();
-
         static::creating(function ($model) {
             if (empty($model->{$model->getKeyName()})) {
                 $model->{$model->getKeyName()} = (string) Str::uuid();
             }
         });
     }
+    */
 
     public function produk()
     {
-        return $this->belongsTo(Produk::class, 'produk_id'); 
+        return $this->belongsTo(\App\Models\Produk::class, 'produk_id'); 
     }
 }

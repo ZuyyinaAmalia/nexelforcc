@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 // 1. Import Halaman PUBLIC (User Biasa/Penjual)
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import ProductDetail from '../views/ProductDetail.vue'
+import HomeView from '../views/HomeView.vue'  
 
 // 2. Import Halaman ADMIN (Dari folder src/views/admin/)
 import LoginAdmin from '../views/admin/LoginAdmin.vue'
@@ -31,6 +33,18 @@ const router = createRouter({
       path: '/register',
       name: 'register',
       component: RegisterView
+    },
+
+    {
+      path: '/home',
+      name: 'home',
+      component: HomeView 
+    },
+
+    {
+      path: '/product/:id',
+      name: 'product-detail',
+      component: ProductDetail
     },
 
     // --- ROUTE PENJUAL ---
