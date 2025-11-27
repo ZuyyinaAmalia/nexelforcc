@@ -33,7 +33,7 @@ const handleLogin = async () => {
 
     // 4. Redirect ke Dashboard (Buat halaman ini nanti)
     console.log("Login Sukses:", user);
-    // router.push('/dashboard'); 
+    router.push('/dashboard-penjual'); 
     alert("Login Berhasil! Token tersimpan.");
 
   } catch (error: any) {

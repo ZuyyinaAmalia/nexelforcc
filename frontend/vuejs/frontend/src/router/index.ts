@@ -10,6 +10,10 @@ import AdminLayout from '../views/admin/AdminLayout.vue'
 import Dashboard from '../views/admin/Dashboard.vue'
 import VerifikasiPenjual from '../views/admin/VerifikasiPenjual.vue'
 
+// 3. Import Halaman PENJUAL
+import DashboardPenjual from '../views/Penjual/Dashboard.vue'
+import KelolaProduk from '../views/Penjual/kelolaproduk.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -27,6 +31,21 @@ const router = createRouter({
       path: '/register',
       name: 'register',
       component: RegisterView
+    },
+
+    // --- ROUTE PENJUAL ---
+    {
+      path: '/dashboard-penjual',
+      name: 'dashboard-penjual',
+      component: DashboardPenjual,
+      // meta: { requiresAuth: true, role: 'penjual' },
+      children: [
+        {
+          path: 'kelolaproduk',
+          name: 'kelola-produk',
+          component: KelolaProduk
+        }
+      ]
     },
 
     // --- ROUTE ADMIN ---

@@ -12,14 +12,20 @@ class ProdukController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $produk = Produk::get();
+        // Jika ada user yang login (penjual), filter produk berdasarkan penjual
+        if ($request->user() && method_exists($request->user(), 'produks')) {
+            $produk = $request->user()->produks()->with('kategori')->get();
+        } else {
+            // Jika public atau admin, tampilkan semua produk
+            $produk = Produk::with('kategori')->get();
+        }
 
         if($produk->count() > 0){
             return ProdukResource::collection($produk);
         } else {
-            return response()->json(['message' => 'No record available', 200]);
+            return response()->json(['message' => 'No record available'], 200);
         }
     }
 
@@ -37,9 +43,17 @@ class ProdukController extends Controller
             'kategori_id' => 'nullable|integer',
         ]);
 
+        // Auto-assign penjual_id jika user adalah penjual
+        if ($request->user() && method_exists($request->user(), 'produks')) {
+            $data['penjual_id'] = $request->user()->id;
+        }
+
         $produk = Produk::create($data);
 
-        return response()->json(new ProdukResource($produk), Response::HTTP_CREATED);
+        return response()->json([
+            'message' => 'Produk berhasil ditambahkan',
+            'data' => new ProdukResource($produk)
+        ], Response::HTTP_CREATED);
     }
 
     /**
