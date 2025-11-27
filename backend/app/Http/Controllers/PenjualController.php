@@ -297,11 +297,19 @@ class PenjualController extends Controller
         // Untuk sementara kita set 0
         $pesananBaru = 0;
 
-        // Aktivitas terbaru (bisa dari log atau riwayat transaksi)
-        // Untuk sementara kita buat contoh data
+        // Hitung total ulasan dari semua produk penjual
+        $produkIds = $penjual->produks()->pluck('id')->toArray();
+        $totalUlasan = \App\Models\Review::whereIn('produk_id', $produkIds)->count();
+
+        // Hitung ulasan baru (7 hari terakhir)
+        $ulasanBaru = \App\Models\Review::whereIn('produk_id', $produkIds)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        // Aktivitas terbaru
         $aktivitasTerbaru = [];
 
-        // Jika ada produk, tambahkan info produk terbaru
+        // Ambil produk terbaru
         $produkTerbaru = $penjual->produks()->latest()->take(3)->get();
         foreach ($produkTerbaru as $produk) {
             $aktivitasTerbaru[] = [
@@ -312,12 +320,41 @@ class PenjualController extends Controller
             ];
         }
 
+        // Ambil ulasan terbaru
+        $reviewTerbaru = \App\Models\Review::whereIn('produk_id', $produkIds)
+            ->with(['produk', 'user'])
+            ->latest()
+            ->take(3)
+            ->get();
+
+        foreach ($reviewTerbaru as $review) {
+            $userName = $review->user ? $review->user->name : 'User';
+            $produkName = $review->produk ? $review->produk->namaProduk : 'Produk';
+            
+            $aktivitasTerbaru[] = [
+                'judul' => 'Ulasan Baru',
+                'deskripsi' => "{$userName} memberi ulasan {$review->rating} ⭐ di {$produkName}",
+                'waktu' => $review->created_at->diffForHumans(),
+                'type' => 'review'
+            ];
+        }
+
+        // Sort aktivitas berdasarkan waktu terbaru
+        usort($aktivitasTerbaru, function($a, $b) {
+            return strtotime($b['waktu']) - strtotime($a['waktu']);
+        });
+
+        // Ambil hanya 5 aktivitas terbaru
+        $aktivitasTerbaru = array_slice($aktivitasTerbaru, 0, 5);
+
         return response()->json([
             'success' => true,
             'data' => [
                 'total_produk' => $totalProduk,
                 'total_penjualan' => $totalPenjualan,
                 'pesanan_baru' => $pesananBaru,
+                'total_ulasan' => $totalUlasan,
+                'ulasan_baru' => $ulasanBaru,
                 'aktivitas_terbaru' => $aktivitasTerbaru,
                 'penjual' => [
                     'nama' => $penjual->namaPenjual,
