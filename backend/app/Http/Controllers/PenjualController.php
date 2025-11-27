@@ -139,7 +139,7 @@ class PenjualController extends Controller
         // 4. Buat Data Alamat (Relasi)
         // Kita asumsikan 'user_id' di tabel alamats merujuk ke id penjual
         Alamat::create([
-            'user_id' => $penjual->id, // Sambungkan ID Penjual
+            'penjual_id' => $penjual->id, // Sambungkan ID Penjual
             'jalan' => $request->jalan,
             'rt' => $request->rt,
             'rw' => $request->rw,
