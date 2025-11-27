@@ -11,7 +11,7 @@ import Dashboard from '../views/admin/Dashboard.vue'
 import VerifikasiPenjual from '../views/admin/VerifikasiPenjual.vue'
 
 // 3. Import Halaman PENJUAL
-import DashboardPenjual from '../views/Penjual/Dashboard.vue'
+import DashboardPenjual from '@/views/Penjual/DashboardPenjual.vue'
 import KelolaProduk from '../views/Penjual/kelolaproduk.vue'
 
 const router = createRouter({
