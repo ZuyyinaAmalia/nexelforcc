@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
+<<<<<<< Updated upstream
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PenjualController;
@@ -53,4 +54,45 @@ Route::prefix('reviews')->group(function () {
 
     // 6. Hapus review
     Route::delete('/{id}', [ReviewController::class, 'destroy']);
+=======
+use App\Http\Controllers\AlamatController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+| Semua route di sini otomatis punya prefix '/api'
+| Contoh: Route::get('/alamats') → http://localhost:8000/api/alamats
+*/
+
+// Route untuk autentikasi user (default Laravel)
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+
+/*
+|--------------------------------------------------------------------------
+| CRUD Alamat Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/alamats', [AlamatController::class, 'index']);           // GET semua alamat
+Route::post('/alamats', [AlamatController::class, 'store']);          // POST tambah alamat
+Route::get('/alamats/{id}', [AlamatController::class, 'show']);       // GET 1 alamat
+Route::put('/alamats/{id}', [AlamatController::class, 'update']);     // PUT update alamat
+Route::delete('/alamats/{id}', [AlamatController::class, 'destroy']); // DELETE hapus alamat
+
+
+/*
+|--------------------------------------------------------------------------
+| Test Route
+|--------------------------------------------------------------------------
+*/
+Route::get('/test', function () {
+    return response()->json([
+        'message' => 'API Laravel berjalan!',
+        'timestamp' => now()
+    ]);
+>>>>>>> Stashed changes
 });

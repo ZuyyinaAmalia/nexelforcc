@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('alamats', function (Blueprint $table) {
             $table->id();
             
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('penjual_id')->constrained('penjuals')->onDelete('cascade');
             
             $table->string('jalan');
             $table->string('rt', 3);
