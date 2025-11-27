@@ -15,10 +15,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-    // Panggil AdminSeeder di sini
-    $this->call([
-        AdminSeeder::class,
-        // PenjualSeeder::class, (jika ada)
-    ]);
-}
+        // User::factory(10)->create();
+
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+        ]);
+
+        // Panggil seeders
+        $this->call([
+            AdminSeeder::class,
+            PenjualSeeder::class,
+        ]);
+    }
 }
