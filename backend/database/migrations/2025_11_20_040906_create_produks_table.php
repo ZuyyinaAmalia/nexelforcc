@@ -18,8 +18,13 @@ return new class extends Migration
             $table->text('deskripsi')->nullable();
             $table->integer('stok')->default(0);
             $table->string('fotoProduk')->nullable();
-            $table->foreignId('penjual_id')->constrained('penjuals')->cascadeOnDelete();
             $table->foreignId('kategori_id')->constrained('kategoris')->onDelete('cascade');
+            
+            $table->foreignId('penjual_id')
+              ->nullable() // Boleh null dulu kalau ada produk tanpa penjual
+              ->constrained('penjuals')
+              ->onDelete('cascade');
+
             $table->timestamps();
         });
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PenjualController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminPenjualController;
 
 
 Route::middleware('api')->group(function () {
@@ -39,12 +40,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Route Protected (Hanya bisa diakses jika punya token admin)
 Route::middleware(['auth:sanctum'])->group(function () {
+
     Route::post('/admin/logout', [AdminController::class, 'logout']);
-    
-    // Cek profile admin sendiri
     Route::get('/admin/me', function (Request $request) {
         return new \App\Http\Resources\AdminResource($request->user());
     });
+
+    // --- FITUR VERIFIKASI ADMIN ---
+    Route::prefix('admin')->group(function () {
+        Route::get('/verifikasi-penjual', [AdminPenjualController::class, 'index']);
+        Route::post('/verifikasi-penjual/{id}', [AdminPenjualController::class, 'verifikasi']);
+    });
+
 });
 
 Route::prefix('reviews')->group(function () {
