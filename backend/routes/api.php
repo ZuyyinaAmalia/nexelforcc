@@ -9,6 +9,7 @@ use App\Http\Controllers\PenjualController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminPenjualController;
 
+
 Route::middleware('api')->group(function () {
     Route::get('/test', function () {
         return ['message' => 'API berjalan!'];
@@ -24,6 +25,20 @@ Route::post('/admin/login', [AdminController::class, 'login']);
 
 Route::apiResource('penjuals', PenjualController::class);
 
+Route::post('/register-penjual', [PenjualController::class, 'register']);
+Route::post('/login-penjual', [PenjualController::class, 'login']);
+
+// === ROUTE PROTECTED (Butuh Token) ===
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout-penjual', [PenjualController::class, 'logout']);
+    
+    // Nanti endpoint CRUD Produk ditaruh di sini agar aman
+    Route::get('/penjual-profile', function (Request $request) {
+        return $request->user();
+    });
+});
+
+// Route Protected (Hanya bisa diakses jika punya token admin)
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/admin/logout', [AdminController::class, 'logout']);

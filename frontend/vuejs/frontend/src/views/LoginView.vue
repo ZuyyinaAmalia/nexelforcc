@@ -1,13 +1,51 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const email = ref('');
 const password = ref('');
 const showPassword = ref(false);
+const errorMessage = ref('');
+const isLoading = ref(false);
 
-const handleLogin = () => {
-  console.log("Login dengan:", email.value, password.value);
-  // Logika API backend nanti di sini
+const handleLogin = async () => {
+  // Reset state
+  errorMessage.value = '';
+  isLoading.value = true;
+
+  try {
+    // 1. Tembak API Login
+    // Ganti URL sesuai alamat server Laravel kamu
+    const response = await axios.post('http://127.0.0.1:8000/api/login-penjual', {
+      email: email.value,
+      password: password.value
+    });
+
+    // 2. Ambil token & user dari response
+    const { access_token, user } = response.data;
+
+    // 3. Simpan Token di LocalStorage
+    localStorage.setItem('token', access_token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    // 4. Redirect ke Dashboard (Buat halaman ini nanti)
+    console.log("Login Sukses:", user);
+    // router.push('/dashboard'); 
+    alert("Login Berhasil! Token tersimpan.");
+
+  } catch (error: any) {
+    if (error.response && error.response.status === 401) {
+      errorMessage.value = "Email atau password salah.";
+    } else {
+      errorMessage.value = "Terjadi kesalahan pada server.";
+      console.error(error);
+    }
+  } finally {
+    isLoading.value = false;
+  }
 };
 </script>
 
@@ -18,7 +56,7 @@ const handleLogin = () => {
       <div class="bg-white py-8 px-4 shadow-lg rounded-2xl sm:px-10">
         
         <div class="mb-8">
-          <h2 class="text-3xl font-bold text-gray-900">Login</h2>
+          <h2 class="text-3xl font-bold text-purple-700 mb-3">Login</h2>
           <p class="mt-2 text-sm text-gray-500">
             Silakan masukkan kredensial Anda untuk melanjutkan
           </p>
@@ -26,6 +64,10 @@ const handleLogin = () => {
 
         <form class="space-y-6" @submit.prevent="handleLogin">
           
+          <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-600 text-sm rounded-md p-3">
+            {{ errorMessage }}
+          </div>
+
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
             <div class="mt-1 relative rounded-md shadow-sm">
@@ -67,29 +109,26 @@ const handleLogin = () => {
           </div>
 
           <div>
-            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out">
-              Masuk
+            <button 
+                type="submit" 
+                :disabled="isLoading"
+                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="isLoading">Memproses...</span>
+              <span v-else>Masuk</span>
             </button>
           </div>
         </form>
 
-        <div class="mt-6">
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-300"></div>
-            </div>
-            
-          </div>
-
-          <div class="mt-6 text-center">
+        <div class="mt-6 text-center">
             <p class="text-sm text-gray-600">
               Belum punya akun? 
               <router-link to="/register" class="font-medium text-purple-600 hover:text-purple-500">
                 Daftar di sini
               </router-link>
             </p>
-          </div>
         </div>
+
       </div>
     </div>
   </div>
