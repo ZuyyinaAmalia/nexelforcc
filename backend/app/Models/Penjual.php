@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -44,9 +45,9 @@ class Penjual extends Authenticatable
         return $this->hasMany(Produk::class, 'penjual_id');
     }
 
-    public function alamat(): BelongsTo
+    public function alamat(): HasOne
     {
-        return $this->belongsTo(Alamat::class, 'alamat_id');
+        return $this->hasOne(Alamat::class, 'penjual_id', 'id');
     }
 
     /* ================= SCOPES ================= */

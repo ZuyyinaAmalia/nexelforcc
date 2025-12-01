@@ -74,7 +74,6 @@ return new class extends Migration
                 'Papua Pegunungan',
                 'Papua Barat Daya'
             ]);
-            
             $table->timestamps();
         });
     }
