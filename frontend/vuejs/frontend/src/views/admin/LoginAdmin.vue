@@ -4,12 +4,14 @@ import axios from 'axios'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
+// Definisi variabel (State)
 const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-// Set base URL default
+// Set base URL default (bisa dipindah ke main.ts sebenarnya)
 axios.defaults.baseURL = 'http://127.0.0.1:8000/api'
 
 const handleLogin = async () => {
@@ -24,14 +26,15 @@ const handleLogin = async () => {
     })
 
     // Simpan Token & Role
-    localStorage.setItem('token', response.data.token)
-    localStorage.setItem('role', 'admin') // Penanda bahwa ini admin
+    localStorage.setItem('token', response.data.token) // Pastikan respon API key-nya 'token' atau 'access_token'
+    localStorage.setItem('role', 'admin') 
 
     // Redirect ke Dashboard
     router.push('/admin/dashboard')
 
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || 'Login Gagal'
+    // Tangkap pesan error dari backend
+    errorMessage.value = error.response?.data?.message || 'Login Gagal, cek email/password.'
   } finally {
     isLoading.value = false
   }
@@ -39,25 +42,45 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gray-800">
-    <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
-      <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Admin Portal</h2>
+  <div class="flex min-h-screen items-center justify-center bg-[#F5F5F9]">
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
       
-      <div v-if="errorMessage" class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
-        {{ errorMessage }}
+      <div class="text-center mb-8">
+          <h1 class="text-3xl font-extrabold text-purple-600 tracking-wide">NEXEL</h1>
+          <p class="text-gray-400 text-sm mt-2">Portal Admin Marketplace</p>
+      </div>
+      
+      <div v-if="errorMessage" class="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm flex items-center border border-red-100">
+        ⚠️ {{ errorMessage }}
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
+      <form @submit.prevent="handleLogin" class="space-y-5">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Email Admin</label>
-          <input v-model="email" type="email" class="mt-1 block w-full border p-2 rounded" placeholder="admin@martplace.com" required>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">Email Admin</label>
+          <input 
+            v-model="email" 
+            type="email" 
+            class="w-full px-4 py-3 rounded-lg bg-gray-50 border-transparent focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition outline-none" 
+            placeholder="admin@nexel.com" 
+            required
+          >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Password</label>
-          <input v-model="password" type="password" class="mt-1 block w-full border p-2 rounded" placeholder="••••••••" required>
+          <label class="block text-sm font-semibold text-gray-600 mb-1">Password</label>
+          <input 
+            v-model="password" 
+            type="password" 
+            class="w-full px-4 py-3 rounded-lg bg-gray-50 border-transparent focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition outline-none" 
+            placeholder="••••••••" 
+            required
+          >
         </div>
-        <button type="submit" :disabled="isLoading" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-300">
-          {{ isLoading ? 'Memproses...' : 'Masuk Sistem' }}
+        <button 
+          type="submit" 
+          :disabled="isLoading" 
+          class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-all transform active:scale-95 shadow-lg shadow-purple-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {{ isLoading ? 'Memproses...' : 'Masuk Dashboard' }}
         </button>
       </form>
     </div>
