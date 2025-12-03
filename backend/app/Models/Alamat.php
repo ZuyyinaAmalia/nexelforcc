@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Alamat extends Model
 {
-    // Nama tabel (opsional, Laravel auto-detect dari nama model)
     protected $table = 'alamats';
 
     // Kolom yang boleh diisi massal (mass assignment)
@@ -22,10 +21,7 @@ class Alamat extends Model
         'provinsi',
     ];
 
-    // Kolom yang disembunyikan saat di-convert ke JSON
-    protected $hidden = [];
-
-    // Cast tipe data
+    // Cast tipe data (Opsional tapi bagus)
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -37,7 +33,7 @@ class Alamat extends Model
         return $this->belongsTo(Penjual::class, 'penjual_id', 'id');
     }
 
-    // Konstanta list provinsi (sesuai dengan migration)
+    // Konstanta list provinsi
     const PROVINSI_LIST = [
         'Nanggroe Aceh Darussalam', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau',
         'Jambi', 'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Bangka Belitung',

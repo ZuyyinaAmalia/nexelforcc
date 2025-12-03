@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-
+use Illuminate\Support\Facades\Validator; 
 class ReviewController extends Controller
 {
     /**
@@ -89,7 +89,8 @@ class ReviewController extends Controller
         }
 
         // 2. Simpan Data
-        $review = Review::create($request->all());
+        $data = $request->except(['id']);
+        $review = Review::create($data);
 
         return response()->json([
             'status' => 'success',

@@ -139,7 +139,7 @@ class PenjualController extends Controller
         // 4. Buat Data Alamat (Relasi)
         // Kita asumsikan 'user_id' di tabel alamats merujuk ke id penjual
         Alamat::create([
-            'user_id' => $penjual->id, // Sambungkan ID Penjual
+            'penjual_id' => $penjual->id, // Sambungkan ID Penjual
             'jalan' => $request->jalan,
             'rt' => $request->rt,
             'rw' => $request->rw,
@@ -233,5 +233,135 @@ class PenjualController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logout berhasil']);
+    }
+
+    /**
+     * Get profile penjual yang sedang login
+     */
+    public function profile(Request $request)
+    {
+        $penjual = $request->user();
+        $penjual->load(['alamat', 'produks']);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $penjual
+        ]);
+    }
+
+    /**
+     * Update profile penjual yang sedang login
+     */
+    public function updateProfile(Request $request)
+    {
+        $penjual = $request->user();
+
+        $data = $request->validate([
+            'namaToko' => ['sometimes', 'required', 'string', 'max:255'],
+            'deskripsiToko' => ['nullable', 'string'],
+            'namaPenjual' => ['sometimes', 'required', 'string', 'max:255'],
+            'noHp' => ['nullable', 'string', 'max:30'],
+            'foto' => ['nullable', 'image', 'max:2048'],
+        ]);
+
+        // Handle foto upload if exists
+        if ($request->hasFile('foto')) {
+            $fotoPath = $request->file('foto')->store('penjuals/foto_profil', 'public');
+            $data['foto'] = $fotoPath;
+        }
+
+        $penjual->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile berhasil diperbarui',
+            'data' => $penjual->fresh()->load('alamat')
+        ]);
+    }
+
+    /**
+     * Get dashboard statistics untuk penjual yang sedang login
+     */
+    public function dashboardStats(Request $request)
+    {
+        $penjual = $request->user();
+
+        // Hitung total produk
+        $totalProduk = $penjual->produks()->count();
+
+        // Hitung total penjualan (jika ada tabel orders/transaksi)
+        // Untuk sementara kita set 0, bisa dikembangkan nanti
+        $totalPenjualan = 0;
+
+        // Hitung pesanan baru (jika ada tabel orders)
+        // Untuk sementara kita set 0
+        $pesananBaru = 0;
+
+        // Hitung total ulasan dari semua produk penjual
+        $produkIds = $penjual->produks()->pluck('id')->toArray();
+        $totalUlasan = \App\Models\Review::whereIn('produk_id', $produkIds)->count();
+
+        // Hitung ulasan baru (7 hari terakhir)
+        $ulasanBaru = \App\Models\Review::whereIn('produk_id', $produkIds)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        // Aktivitas terbaru
+        $aktivitasTerbaru = [];
+
+        // Ambil produk terbaru
+        $produkTerbaru = $penjual->produks()->latest()->take(3)->get();
+        foreach ($produkTerbaru as $produk) {
+            $aktivitasTerbaru[] = [
+                'judul' => 'Produk Ditambahkan',
+                'deskripsi' => "Produk '{$produk->namaProduk}' berhasil ditambahkan",
+                'waktu' => $produk->created_at->diffForHumans(),
+                'type' => 'produk'
+            ];
+        }
+
+        // Ambil ulasan terbaru
+        $reviewTerbaru = \App\Models\Review::whereIn('produk_id', $produkIds)
+            ->with(['produk', 'user'])
+            ->latest()
+            ->take(3)
+            ->get();
+
+        foreach ($reviewTerbaru as $review) {
+            $userName = $review->user ? $review->user->name : 'User';
+            $produkName = $review->produk ? $review->produk->namaProduk : 'Produk';
+            
+            $aktivitasTerbaru[] = [
+                'judul' => 'Ulasan Baru',
+                'deskripsi' => "{$userName} memberi ulasan {$review->rating} ⭐ di {$produkName}",
+                'waktu' => $review->created_at->diffForHumans(),
+                'type' => 'review'
+            ];
+        }
+
+        // Sort aktivitas berdasarkan waktu terbaru
+        usort($aktivitasTerbaru, function($a, $b) {
+            return strtotime($b['waktu']) - strtotime($a['waktu']);
+        });
+
+        // Ambil hanya 5 aktivitas terbaru
+        $aktivitasTerbaru = array_slice($aktivitasTerbaru, 0, 5);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_produk' => $totalProduk,
+                'total_penjualan' => $totalPenjualan,
+                'pesanan_baru' => $pesananBaru,
+                'total_ulasan' => $totalUlasan,
+                'ulasan_baru' => $ulasanBaru,
+                'aktivitas_terbaru' => $aktivitasTerbaru,
+                'penjual' => [
+                    'nama' => $penjual->namaPenjual,
+                    'toko' => $penjual->namaToko,
+                    'status' => $penjual->status
+                ]
+            ]
+        ]);
     }
 }

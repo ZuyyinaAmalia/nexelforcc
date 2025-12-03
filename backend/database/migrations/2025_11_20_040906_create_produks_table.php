@@ -17,6 +17,7 @@ return new class extends Migration
             $table->double('harga');
             $table->text('deskripsi')->nullable();
             $table->integer('stok')->default(0);
+            $table->enum('statusProduk', ['Baru', 'Bekas'])->default('Baru');
             $table->string('fotoProduk')->nullable();
             $table->foreignId('kategori_id')->constrained('kategoris')->onDelete('cascade');
             

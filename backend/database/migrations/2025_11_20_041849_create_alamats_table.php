@@ -14,15 +14,19 @@ return new class extends Migration
         Schema::create('alamats', function (Blueprint $table) {
             $table->id();
             
-            $table->foreignId('penjual_id')->constrained('penjuals')->onDelete('cascade');
+            // --- PENTING: GUNAKAN 'user_id' ---
+            // Kita namakan 'user_id' agar cocok dengan kodingan di Controller.
+            // Tapi kita sambungkan (constrained) ke tabel 'penjuals'.
+            $table->foreignId('user_id')->constrained('penjuals')->onDelete('cascade');
             
             $table->string('jalan');
-            $table->string('rt', 3);
-            $table->string('rw', 3);
+            $table->string('rt', 3)->nullable(); // Kasih nullable biar aman
+            $table->string('rw', 3)->nullable();
             $table->string('desa');
             $table->string('kota');
+            
+            // Enum Provinsi (Pastikan isinya sama persis dengan yang di Model & Vue)
             $table->enum('provinsi', [
-                // Sumatera (10)
                 'Nanggroe Aceh Darussalam', 
                 'Sumatera Utara', 
                 'Sumatera Barat', 
@@ -33,40 +37,28 @@ return new class extends Migration
                 'Bengkulu', 
                 'Lampung', 
                 'Bangka Belitung',
-                
-                // Jawa (6)
                 'DKI Jakarta', 
                 'Jawa Barat', 
                 'Jawa Tengah', 
                 'DI Yogyakarta', 
                 'Jawa Timur',
                 'Banten',
-                
-                // Bali & Nusa Tenggara (3)
                 'Bali', 
                 'Nusa Tenggara Barat', 
                 'Nusa Tenggara Timur',
-                
-                // Kalimantan (5)
                 'Kalimantan Barat', 
                 'Kalimantan Tengah', 
                 'Kalimantan Selatan',
                 'Kalimantan Timur', 
                 'Kalimantan Utara',
-                
-                // Sulawesi (6)
                 'Sulawesi Utara', 
                 'Sulawesi Tengah', 
                 'Sulawesi Selatan', 
                 'Sulawesi Tenggara',
                 'Gorontalo', 
                 'Sulawesi Barat',
-                
-                // Maluku (2)
                 'Maluku', 
                 'Maluku Utara',
-                
-                // Papua (6)
                 'Papua', 
                 'Papua Barat', 
                 'Papua Selatan',

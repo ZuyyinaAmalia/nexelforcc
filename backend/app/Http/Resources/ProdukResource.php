@@ -9,15 +9,20 @@ class ProdukResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        // $this merujuk pada data Model (Produk)
         return [
             'id' => $this->id,
-            'nama_produk' => $this->namaProduk, // Anda bisa merubah nama key JSON sesuka hati
+            'nama_produk' => $this->namaProduk, 
             'deskripsi' => $this->deskripsi,
-            'harga' => (int) $this->harga, // Casting ke integer agar aman
+            'harga' => (int) $this->harga, 
             'stok' => (int) $this->stok,
-            'foto_url' => $this->fotoProduk, // Misal ubah nama jadi foto_url
-            'kategori' => $this->kategori?->namaKategori ?? 'Tanpa Kategori',
+            'statusProduk' => $this->statusProduk, 
+            'foto_url' => $this->fotoProduk, 
+            
+            'created_at' => $this->created_at, 
+            
+            'penjual' => new PenjualResource($this->whenLoaded('penjual')), 
+            'kategori' => new KategoriResource($this->whenLoaded('kategori')),
+            'reviews' => ReviewResource::collection($this->whenLoaded('reviews')),
         ];
     }
 }
