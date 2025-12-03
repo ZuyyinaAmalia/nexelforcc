@@ -1,33 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-// import { penjualRegister } from '@/services/api'; // Uncomment jika sudah siap pakai
-
-// Mocking API call untuk contoh agar tidak error saat dicoba (Hapus jika sudah pakai import asli)
-const penjualRegister = async (data: any) => {
-    return new Promise((resolve) => setTimeout(resolve, 1000));
-};
+import axios from 'axios'; 
+// Pastikan path import ini sesuai struktur folder Anda
+import { penjualRegister, getErrorMessage } from '@/services/api';
 
 const router = useRouter();
 const isLoading = ref(false);
 
 // --- API WILAYAH URL ---
-const API_BASE_URL = 'https://www.emsifa.com/api-wilayah-indonesia/api';
+const API_WILAYAH_BASE = 'https://www.emsifa.com/api-wilayah-indonesia/api';
 
-// --- INTERFACES ---
-interface Region {
-    id: string;
-    name: string;
-}
+// --- STATE WILAYAH (Untuk Opsi Dropdown) ---
+const provinces = ref<any[]>([]);
+const regencies = ref<any[]>([]); // Kota/Kab
+const districts = ref<any[]>([]); // Kecamatan
+const villages = ref<any[]>([]);  // Desa/Kelurahan
 
-// --- STATE WILAYAH (Lists) ---
-const provinces = ref<Region[]>([]);
-const regencies = ref<Region[]>([]); // Kota/Kab
-const districts = ref<Region[]>([]); // Kecamatan
-const villages = ref<Region[]>([]);  // Desa/Kelurahan
-
-// --- STATE SELECTED IDs (Untuk Logic Fetching) ---
-// Kita pisah antara ID (untuk fetch API) dan Nama (untuk dikirim ke Backend)
+// --- STATE SELECTED IDs (Digunakan untuk fetch API anak) ---
 const selectedRegionIds = ref({
     provinsi: '',
     kota: '',
@@ -35,161 +25,156 @@ const selectedRegionIds = ref({
     desa: ''
 });
 
-// --- MAIN FORM STATE ---
+// --- STATE FORM UTAMA (Yang dikirim ke Backend - Berisi NAMA daerah) ---
 const form = ref({
     email: '', password: '', namaPenjual: '', nik: '', noHp: '',
     namaToko: '', deskripsiToko: '', jalan: '', rt: '', rw: '',
-    provinsi: '', kota: '', kecamatan: '', desa: '' // Disimpan sebagai Nama (String)
+    provinsi: '', kota: '', kecamatan: '', desa: '' 
 });
 
-const errors = ref<Record<string, string>>({
-    email: '', password: '', namaPenjual: '', nik: '', noHp: '',
-    namaToko: '', deskripsiToko: '', jalan: '', rt: '', rw: '',
-    provinsi: '', kota: '', kecamatan: '', desa: '', foto: '', fotoKtp: ''
-});
-
+// --- STATE ERROR & FILE ---
+const errors = ref<Record<string, string>>({});
 const fileFoto = ref<File | null>(null);
 const fileKtp = ref<File | null>(null);
 
-// --- FETCHING LOGIC ---
+// --- LOGIC API WILAYAH (CASCADING) ---
 
-// 1. Fetch Provinsi (Jalan saat mounted)
+// 1. Fetch Provinsi (Saat Mounted)
 const fetchProvinces = async () => {
     try {
-        const res = await fetch(`${API_BASE_URL}/provinces.json`);
-        provinces.value = await res.json();
-    } catch (e) {
-        console.error("Gagal ambil provinsi", e);
-    }
+        const res = await axios.get(`${API_WILAYAH_BASE}/provinces.json`);
+        provinces.value = res.data;
+    } catch (e) { console.error("Gagal ambil provinsi", e); }
 };
 
-// 2. Fetch Kota/Kabupaten
+// 2. Handle Ganti Provinsi
 const handleProvinsiChange = async () => {
-    // Reset child fields
-    regencies.value = []; districts.value = []; villages.value = [];
-    selectedRegionIds.value.kota = ''; selectedRegionIds.value.kecamatan = ''; selectedRegionIds.value.desa = '';
-    form.value.kota = ''; form.value.kecamatan = ''; form.value.desa = '';
+    // 1. Ambil Nama Provinsi berdasarkan ID yang dipilih
+    const prov = provinces.value.find(p => p.id === selectedRegionIds.value.provinsi);
+    form.value.provinsi = prov ? prov.name : '';
     
-    // Set Nama Provinsi ke Form
-    const selectedProv = provinces.value.find(p => p.id === selectedRegionIds.value.provinsi);
-    form.value.provinsi = selectedProv ? selectedProv.name : '';
-    validateField('provinsi');
+    // 2. Reset Anak (Kota, Kec, Desa)
+    regencies.value = []; districts.value = []; villages.value = [];
+    selectedRegionIds.value.kota = ''; 
+    selectedRegionIds.value.kecamatan = ''; 
+    selectedRegionIds.value.desa = '';
+    form.value.kota = ''; form.value.kecamatan = ''; form.value.desa = '';
 
-    // Fetch Kota
+    // 3. Validasi & Fetch Kota
+    validateField('provinsi');
     if (selectedRegionIds.value.provinsi) {
         try {
-            const res = await fetch(`${API_BASE_URL}/regencies/${selectedRegionIds.value.provinsi}.json`);
-            regencies.value = await res.json();
+            const res = await axios.get(`${API_WILAYAH_BASE}/regencies/${selectedRegionIds.value.provinsi}.json`);
+            regencies.value = res.data;
         } catch (e) { console.error(e); }
     }
 };
 
-// 3. Fetch Kecamatan
+// 3. Handle Ganti Kota
 const handleKotaChange = async () => {
-    // Reset child fields
+    const kota = regencies.value.find(r => r.id === selectedRegionIds.value.kota);
+    form.value.kota = kota ? kota.name : '';
+
+    // Reset Anak (Kec, Desa)
     districts.value = []; villages.value = [];
-    selectedRegionIds.value.kecamatan = ''; selectedRegionIds.value.desa = '';
+    selectedRegionIds.value.kecamatan = ''; 
+    selectedRegionIds.value.desa = '';
     form.value.kecamatan = ''; form.value.desa = '';
 
-    // Set Nama Kota ke Form
-    const selectedKota = regencies.value.find(r => r.id === selectedRegionIds.value.kota);
-    form.value.kota = selectedKota ? selectedKota.name : '';
     validateField('kota');
-
-    // Fetch Kecamatan
     if (selectedRegionIds.value.kota) {
         try {
-            const res = await fetch(`${API_BASE_URL}/districts/${selectedRegionIds.value.kota}.json`);
-            districts.value = await res.json();
+            const res = await axios.get(`${API_WILAYAH_BASE}/districts/${selectedRegionIds.value.kota}.json`);
+            districts.value = res.data;
         } catch (e) { console.error(e); }
     }
 };
 
-// 4. Fetch Desa/Kelurahan
+// 4. Handle Ganti Kecamatan
 const handleKecamatanChange = async () => {
-    // Reset child fields
+    const kec = districts.value.find(d => d.id === selectedRegionIds.value.kecamatan);
+    form.value.kecamatan = kec ? kec.name : '';
+
+    // Reset Anak (Desa)
     villages.value = [];
     selectedRegionIds.value.desa = '';
     form.value.desa = '';
 
-    // Set Nama Kecamatan ke Form
-    const selectedKec = districts.value.find(d => d.id === selectedRegionIds.value.kecamatan);
-    form.value.kecamatan = selectedKec ? selectedKec.name : '';
     validateField('kecamatan');
-
-    // Fetch Desa
     if (selectedRegionIds.value.kecamatan) {
         try {
-            const res = await fetch(`${API_BASE_URL}/villages/${selectedRegionIds.value.kecamatan}.json`);
-            villages.value = await res.json();
+            const res = await axios.get(`${API_WILAYAH_BASE}/villages/${selectedRegionIds.value.kecamatan}.json`);
+            villages.value = res.data;
         } catch (e) { console.error(e); }
     }
 };
 
-// 5. Set Desa Terakhir
+// 5. Handle Ganti Desa
 const handleDesaChange = () => {
-    const selectedDesa = villages.value.find(v => v.id === selectedRegionIds.value.desa);
-    form.value.desa = selectedDesa ? selectedDesa.name : '';
+    const desa = villages.value.find(v => v.id === selectedRegionIds.value.desa);
+    form.value.desa = desa ? desa.name : '';
     validateField('desa');
 };
 
-// --- INITIALIZE ---
-onMounted(() => {
-    fetchProvinces();
-});
+onMounted(() => { fetchProvinces(); });
 
-// --- HELPER & VALIDATION ---
+// --- VALIDASI & FILE HANDLER ---
 
 const handleFileChange = (e: Event, type: 'foto' | 'ktp') => {
     const target = e.target as HTMLInputElement;
     if (target.files && target.files.length > 0) {
-        const file = target.files[0] || null; 
-        if (type === 'foto') {
-            fileFoto.value = file;
-            errors.value.foto = '';
-        } else {
-            fileKtp.value = file;
-            errors.value.fotoKtp = '';
+        // FIX TS Error: Pastikan file diambil dengan aman
+        const file = target.files[0];
+        
+        // Guard clause: jika file undefined, hentikan fungsi
+        if (!file) return;
+
+        if (type === 'foto') { 
+            fileFoto.value = file; 
+            errors.value.foto = ''; 
+        } else { 
+            fileKtp.value = file; 
+            errors.value.fotoKtp = ''; 
         }
     }
 };
 
 const validateField = (field: string) => {
     const val = form.value[field as keyof typeof form.value];
-    errors.value[field] = ''; 
+    errors.value[field] = '';
 
-    if (!val || val === '') {
-        errors.value[field] = 'Wajib diisi';
-        return;
-    }
+    if (!val || val === '') { errors.value[field] = 'Wajib diisi'; return; }
 
     if (field === 'password') {
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         if (!regex.test(val as string)) errors.value.password = "Min 8 kar, Besar, kecil, angka & simbol.";
     }
     if (field === 'nik') {
-        if (!/^\d+$/.test(val as string)) errors.value.nik = "Harus angka.";
-        else if ((val as string).length !== 16) errors.value.nik = "Harus 16 digit.";
+        if (!/^\d+$/.test(val as string) || (val as string).length !== 16) errors.value.nik = "Harus angka 16 digit.";
     }
     if (field === 'noHp') {
         if (!(val as string).startsWith('08')) errors.value.noHp = "Harus diawali '08'.";
-        else if ((val as string).length < 10 || (val as string).length > 14) errors.value.noHp = "Panjang tidak valid.";
     }
     if (field === 'deskripsiToko') {
-        if ((val as string).length < 100) errors.value.deskripsiToko = `Kurang panjang (${(val as string).length}/100)`;
+        if ((val as string).length < 20) errors.value.deskripsiToko = `Kurang panjang (${(val as string).length}/20)`;
     }
 };
 
+// --- SUBMIT REGISTER ---
 const handleRegister = async () => {
     let isValid = true;
     
+    // Validasi Text
     Object.keys(form.value).forEach(key => {
         validateField(key);
         if (errors.value[key]) isValid = false;
     });
-
-    if (!fileFoto.value) { errors.value.foto = "Wajib upload"; isValid = false; }
-    if (!fileKtp.value) { errors.value.fotoKtp = "Wajib upload"; isValid = false; }
+    
+    // Validasi Manual Dropdown (untuk memastikan terisi)
+    if (!selectedRegionIds.value.provinsi) { errors.value.provinsi = 'Wajib pilih'; isValid = false; }
+    if (!selectedRegionIds.value.kota) { errors.value.kota = 'Wajib pilih'; isValid = false; }
+    if (!selectedRegionIds.value.kecamatan) { errors.value.kecamatan = 'Wajib pilih'; isValid = false; }
+    if (!selectedRegionIds.value.desa) { errors.value.desa = 'Wajib pilih'; isValid = false; }
 
     if (!isValid) {
         alert("Mohon perbaiki isian yang berwarna merah.");
@@ -199,9 +184,11 @@ const handleRegister = async () => {
     isLoading.value = true;
     const formData = new FormData();
     
+    // Append Text
     Object.keys(form.value).forEach(key => {
         formData.append(key, form.value[key as keyof typeof form.value]);
     });
+    // Append File
     if (fileFoto.value) formData.append('foto', fileFoto.value);
     if (fileKtp.value) formData.append('fotoKtp', fileKtp.value);
 
@@ -210,12 +197,8 @@ const handleRegister = async () => {
         alert("Registrasi Berhasil! Silakan Login.");
         router.push('/login');
     } catch (error: any) {
-        console.error(error);
-        if (error.response?.data?.message) {
-            alert("Gagal: " + error.response.data.message);
-        } else {
-            alert("Terjadi kesalahan pada server.");
-        }
+        console.error("Register Error:", error);
+        alert("Gagal: " + getErrorMessage(error));
     } finally {
         isLoading.value = false;
     }
@@ -301,13 +284,13 @@ const handleRegister = async () => {
                         <textarea v-model="form.deskripsiToko" @input="validateField('deskripsiToko')" @blur="validateField('deskripsiToko')" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm" :class="{'border-red-500': errors.deskripsiToko}"></textarea>
                         <div class="flex justify-between items-center mt-1">
                             <p class="text-xs text-red-600 h-4">{{ errors.deskripsiToko }}</p>
-                            <p class="text-xs text-gray-400">{{ form.deskripsiToko.length }}/100</p>
+                            <p class="text-xs text-gray-400">{{ form.deskripsiToko.length }}/20</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ALAMAT LENGKAP (WILAYAH API) -->
+            <!-- ALAMAT LENGKAP (CASCADING DROPDOWN) -->
             <div>
                 <h3 class="text-lg font-medium text-purple-700 mb-3 mt-4 border-t pt-4">Alamat Lengkap</h3>
                 <div class="space-y-4">
@@ -319,6 +302,7 @@ const handleRegister = async () => {
                             v-model="selectedRegionIds.provinsi" 
                             @change="handleProvinsiChange" 
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white"
+                            :class="{'border-red-500': errors.provinsi}"
                         >
                             <option value="" disabled>-- Pilih Provinsi --</option>
                             <option v-for="prov in provinces" :key="prov.id" :value="prov.id">{{ prov.name }}</option>
@@ -333,7 +317,8 @@ const handleRegister = async () => {
                             v-model="selectedRegionIds.kota" 
                             @change="handleKotaChange"
                             :disabled="!selectedRegionIds.provinsi"
-                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                            :class="{'border-red-500': errors.kota}"
                         >
                             <option value="" disabled>-- Pilih Kota/Kab --</option>
                             <option v-for="city in regencies" :key="city.id" :value="city.id">{{ city.name }}</option>
@@ -341,14 +326,15 @@ const handleRegister = async () => {
                         <p v-if="errors.kota" class="mt-1 text-xs text-red-600">{{ errors.kota }}</p>
                     </div>
 
-                    <!-- KECAMATAN (BARU) -->
+                    <!-- KECAMATAN -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Kecamatan <span class="text-red-500">*</span></label>
                         <select 
                             v-model="selectedRegionIds.kecamatan"
                             @change="handleKecamatanChange" 
                             :disabled="!selectedRegionIds.kota"
-                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                            :class="{'border-red-500': errors.kecamatan}"
                         >
                             <option value="" disabled>-- Pilih Kecamatan --</option>
                             <option v-for="dist in districts" :key="dist.id" :value="dist.id">{{ dist.name }}</option>
@@ -363,7 +349,8 @@ const handleRegister = async () => {
                             v-model="selectedRegionIds.desa"
                             @change="handleDesaChange"
                             :disabled="!selectedRegionIds.kecamatan"
-                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                            :class="{'border-red-500': errors.desa}"
                         >
                             <option value="" disabled>-- Pilih Desa --</option>
                             <option v-for="vill in villages" :key="vill.id" :value="vill.id">{{ vill.name }}</option>

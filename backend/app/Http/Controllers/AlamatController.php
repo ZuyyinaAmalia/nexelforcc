@@ -54,6 +54,7 @@ class AlamatController extends Controller
             'rt' => 'required|string|max:3',
             'rw' => 'required|string|max:3',
             'desa' => 'required|string|max:100',
+            'kecamatan' => 'required|string|max:100',
             'kota' => 'required|string|max:100',
             'provinsi' => 'required|in:' . implode(',', Alamat::PROVINSI_LIST),
         ]);
@@ -144,6 +145,7 @@ class AlamatController extends Controller
                 'rt' => 'sometimes|string|max:3',
                 'rw' => 'sometimes|string|max:3',
                 'desa' => 'sometimes|string|max:100',
+                'kecamatan' => 'sometimes|string|max:100',
                 'kota' => 'sometimes|string|max:100',
                 'provinsi' => 'sometimes|in:' . implode(',', Alamat::PROVINSI_LIST),
             ]);

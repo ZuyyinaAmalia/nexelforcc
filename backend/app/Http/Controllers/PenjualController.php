@@ -7,6 +7,7 @@ use App\Models\Alamat;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 
@@ -106,6 +107,7 @@ class PenjualController extends Controller
             'rt' => 'nullable|string',
             'rw' => 'nullable|string',
             'desa' => 'required|string',
+            'kecamatan' => 'required|string',
             'kota' => 'required|string',
             'provinsi' => 'required|string',
         ]);
@@ -136,16 +138,28 @@ class PenjualController extends Controller
             'status' => 'PENDING',    // Default status
         ]);
 
+        $provinsiInput = strtoupper($request->provinsi);
+        $provinsiBenar = collect(Alamat::PROVINSI_LIST)->first(function($p) use ($provinsiInput) {
+            return strtoupper($p) === $provinsiInput;
+        });
+        
+        // Jika ketemu pakai format DB, jika tidak pakai Str::title (Fallback)
+        $provinsiToSave = $provinsiBenar ?? Str::title($request->provinsi);
+
         // 4. Buat Data Alamat (Relasi)
-        // Kita asumsikan 'user_id' di tabel alamats merujuk ke id penjual
         Alamat::create([
-            'penjual_id' => $penjual->id, // Sambungkan ID Penjual
+            'penjual_id' => $penjual->id,
             'jalan' => $request->jalan,
             'rt' => $request->rt,
             'rw' => $request->rw,
-            'desa' => $request->desa,
-            'kota' => $request->kota,
-            'provinsi' => $request->provinsi,
+            
+            // Format Title Case agar rapi di DB (misal: "TEMBALANG" jadi "Tembalang")
+            'desa' => Str::title($request->desa),
+            'kecamatan' => Str::title($request->kecamatan),
+            'kota' => Str::title($request->kota),
+            
+            // Gunakan provinsi yang sudah dinormalisasi
+            'provinsi' => $provinsiToSave, 
         ]);
 
         // 5. Return Response
