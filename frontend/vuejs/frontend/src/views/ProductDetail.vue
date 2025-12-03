@@ -6,9 +6,9 @@ import { useRoute } from 'vue-router';
 // --- INIT & CONFIG ---
 const route = useRoute();
 const productId = useRoute().params.id; 
-const API_URL = `http://127.0.0.1:8000/api/produks/${productId}`; 
+const API_URL = `http://127.0.0.1:8000/api/public/produks/${productId}`; 
 const LARAVEL_BASE_URL = 'http://127.0.0.1:8000';
-const REVIEW_API_URL = `${LARAVEL_BASE_URL}/api/reviews`;
+const REVIEW_API_URL = `${LARAVEL_BASE_URL}/api/public/reviews`;
 
 // --- STATE DATA ---
 const product = ref<any>(null);
@@ -88,6 +88,8 @@ const fetchProductDetail = async () => {
                 rating: review.rating,
                 date: new Date(review.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
                 comment: review.ulasan, 
+                province: review.provinsiPengunjung, // <-- BARU
+                email: review.emailPengunjung,       // <-- BARU
             })).reverse(); // Terbaru di atas
         }
         
@@ -387,24 +389,42 @@ const formatPrice = (price: number) => {
                                     </p>
                                 </div>
 
-                                <div v-if="activeTab === 'reviews'">
-                                    <div class="space-y-6">
-                                        <div v-for="review in reviews" :key="review.id" class="border-b pb-4 last:border-b-0 last:pb-0">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <span class="font-semibold text-gray-800">{{ review.user }}</span>
-                                                <span class="text-sm text-gray-500">{{ review.date }}</span>
-                                            </div>
-                                            
-                                            <div class="flex items-center mb-2">
-                                                <span class="text-yellow-500 text-lg mr-2">{{ getStarDisplay(review.rating) }}</span>
-                                                <span class="text-sm font-medium text-gray-700">{{ review.rating }}/5</span>
-                                            </div>
 
-                                            <p class="text-gray-700 italic">"{{ review.comment }}"</p>
-                                        </div>
-                                    </div>
-                                </div>
 
+
+                            <div v-if="activeTab === 'reviews'">
+    <div class="space-y-6">
+        <div v-for="review in reviews" :key="review.id" class="border-b pb-4 last:border-b-0 last:pb-0">
+
+            <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-gray-800">{{ review.user }}</span>
+                    <span class="text-xs text-gray-500 hidden sm:inline">-</span> 
+                    <span class="text-sm text-gray-500 italic">{{ review.email }}</span>
+                </div>
+                
+                <span class="text-sm text-gray-500">{{ review.date }}</span>
+            </div>
+
+            <p class="text-xs text-purple-600 font-medium mb-1">
+                <svg class="w-3 h-3 inline mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                {{ review.province }}
+            </p>
+            
+            <div class="flex items-center mb-2">
+                <span class="text-yellow-500 text-lg mr-2">{{ getStarDisplay(review.rating) }}</span>
+                <span class="text-sm font-medium text-gray-700">{{ review.rating }}/5</span>
+            </div>
+
+            <p class="text-gray-700 italic">"{{ review.comment }}"</p>
+        </div>
+    </div>
+</div>
+
+
+
+
+                                
                             </div>
 
                         </div>

@@ -36,11 +36,13 @@ Route::prefix('public')->group(function () {
     
     // ----- PRODUK (Public - untuk customer lihat produk) -----
     Route::get('/produks', [ProdukController::class, 'index']);
+    Route::get('produks/search', [ProdukController::class, 'search']);
     Route::get('/produks/{produk}', [ProdukController::class, 'show']);
     
     // ----- KATEGORI (Public - untuk filter produk) -----
     Route::get('/kategoris', [KategoriController::class, 'index']);
     Route::get('/kategoris/{kategori}', [KategoriController::class, 'show']);
+
     
     // ----- REVIEW (Public - customer bisa lihat & buat review tanpa login) -----
     Route::get('/reviews', [ReviewController::class, 'index']);

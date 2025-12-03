@@ -14,18 +14,33 @@ class ProdukController extends Controller
      */
     public function index(Request $request)
     {
-        // Jika ada user yang login (penjual), filter produk berdasarkan penjual
+        // Inisialisasi query builder
+        $query = Produk::with(['penjual', 'kategori']);
+
+        // 1. Logic untuk Penjual (hanya tampilkan produk mereka)
         if ($request->user() && method_exists($request->user(), 'produks')) {
-            $produk = $request->user()->produks()->with(['penjual', 'kategori'])->get();
-        } else {
-            // Jika public atau admin, tampilkan semua produk
-            $produk = Produk::with(['penjual', 'kategori'])->get();
+            // Jika ada user yang login (penjual), filter produk berdasarkan penjual
+            $query->where('penjual_id', $request->user()->id);
         }
+
+        // 2. Logic Filtering Kategori (berlaku untuk Publik & Penjual)
+        if ($request->has('kategori')) {
+            $categoryName = $request->query('kategori');
+
+            //  whereHas untuk memfilter produk berdasarkan nama kategori
+            $query->whereHas('kategori', function ($q) use ($categoryName) {
+                // Pastikan sesuai dengan nama kolom di tabel kategoris
+                $q->whereRaw('LOWER("namaKategori") = ?', [strtolower($categoryName)]);
+            });
+        }
+
+        // Ambil hasil produk
+        $produk = $query->get();
 
         if($produk->count() > 0){
             return ProdukResource::collection($produk);
         } else {
-            return response()->json(['message' => 'No record available'], 200);
+            return response()->json(['data' => [], 'message' => 'No record available'], 200);
         }
     }
 
@@ -87,6 +102,48 @@ class ProdukController extends Controller
     }
 
     /**
+     * Logic untuk Pencarian Produk berdasarkan nama atau deskripsi.
+     * Rute yang digunakan: /api/products/search?q=keyword
+     */
+    public function search(Request $request)
+    {
+        // Ambil query pencarian dari parameter 'q'
+        $searchQuery = $request->input('q');
+
+        // Pastikan query tidak kosong atau terlalu pendek
+        if (empty($searchQuery) || strlen($searchQuery) < 1) { 
+            return response()->json([
+                'data' => [], 
+                'message' => 'Query pencarian terlalu pendek.'
+            ], 200);
+        }
+
+        // Inisialisasi query builder
+        $query = Produk::with(['penjual', 'kategori']);
+
+        // Filter: Cari produk yang namaProduk atau deskripsi mengandung kata kunci
+        // Menggunakan LIKE dan % untuk pencarian parsial (partial search)
+        $query->where(function ($q) use ($searchQuery) {
+            $q->where('namaProduk', 'LIKE', '%' . $searchQuery . '%')
+              ->orWhere('deskripsi', 'LIKE', '%' . $searchQuery . '%');
+        });
+
+        // Ambil hasil produk
+        $produk = $query->get();
+
+        if ($produk->count() > 0) {
+            // Menggunakan ProdukResource untuk format output yang konsisten
+            return ProdukResource::collection($produk);
+        } else {
+            return response()->json([
+                'data' => [], 
+                'message' => 'Produk tidak ditemukan.'
+            ], 200);
+        }
+    }
+
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Produk $produk)
@@ -96,3 +153,5 @@ class ProdukController extends Controller
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }
+
+
