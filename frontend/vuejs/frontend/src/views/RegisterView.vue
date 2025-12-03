@@ -1,72 +1,149 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { penjualRegister } from '@/services/api';
+// import { penjualRegister } from '@/services/api'; // Uncomment jika sudah siap pakai
+
+// Mocking API call untuk contoh agar tidak error saat dicoba (Hapus jika sudah pakai import asli)
+const penjualRegister = async (data: any) => {
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+};
 
 const router = useRouter();
 const isLoading = ref(false);
 
-// --- DATA PROVINSI ---
-const provinsiList = [
-    'Nanggroe Aceh Darussalam', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau',
-    'Jambi', 'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Bangka Belitung',
-    'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten',
-    'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur',
-    'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara',
-    'Sulawesi Utara', 'Sulawesi Tengah', 'Sulawesi Selatan', 'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat',
-    'Maluku', 'Maluku Utara',
-    'Papua', 'Papua Barat', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan', 'Papua Barat Daya'
-];
+// --- API WILAYAH URL ---
+const API_BASE_URL = 'https://www.emsifa.com/api-wilayah-indonesia/api';
 
-// --- STATE ---
+// --- INTERFACES ---
+interface Region {
+    id: string;
+    name: string;
+}
+
+// --- STATE WILAYAH (Lists) ---
+const provinces = ref<Region[]>([]);
+const regencies = ref<Region[]>([]); // Kota/Kab
+const districts = ref<Region[]>([]); // Kecamatan
+const villages = ref<Region[]>([]);  // Desa/Kelurahan
+
+// --- STATE SELECTED IDs (Untuk Logic Fetching) ---
+// Kita pisah antara ID (untuk fetch API) dan Nama (untuk dikirim ke Backend)
+const selectedRegionIds = ref({
+    provinsi: '',
+    kota: '',
+    kecamatan: '',
+    desa: ''
+});
+
+// --- MAIN FORM STATE ---
 const form = ref({
     email: '', password: '', namaPenjual: '', nik: '', noHp: '',
     namaToko: '', deskripsiToko: '', jalan: '', rt: '', rw: '',
-    desa: '', kota: '', provinsi: ''
+    provinsi: '', kota: '', kecamatan: '', desa: '' // Disimpan sebagai Nama (String)
 });
 
 const errors = ref<Record<string, string>>({
     email: '', password: '', namaPenjual: '', nik: '', noHp: '',
     namaToko: '', deskripsiToko: '', jalan: '', rt: '', rw: '',
-    desa: '', kota: '', provinsi: '', foto: '', fotoKtp: ''
+    provinsi: '', kota: '', kecamatan: '', desa: '', foto: '', fotoKtp: ''
 });
 
 const fileFoto = ref<File | null>(null);
 const fileKtp = ref<File | null>(null);
-const showProvinsiList = ref(false);
 
-// --- LOGIC ---
+// --- FETCHING LOGIC ---
 
-// 1. Filter Provinsi
-const filteredProvinsi = computed(() => {
-    if (!form.value.provinsi) return provinsiList;
-    return provinsiList.filter(p => 
-        p.toLowerCase().includes(form.value.provinsi.toLowerCase())
-    );
+// 1. Fetch Provinsi (Jalan saat mounted)
+const fetchProvinces = async () => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/provinces.json`);
+        provinces.value = await res.json();
+    } catch (e) {
+        console.error("Gagal ambil provinsi", e);
+    }
+};
+
+// 2. Fetch Kota/Kabupaten
+const handleProvinsiChange = async () => {
+    // Reset child fields
+    regencies.value = []; districts.value = []; villages.value = [];
+    selectedRegionIds.value.kota = ''; selectedRegionIds.value.kecamatan = ''; selectedRegionIds.value.desa = '';
+    form.value.kota = ''; form.value.kecamatan = ''; form.value.desa = '';
+    
+    // Set Nama Provinsi ke Form
+    const selectedProv = provinces.value.find(p => p.id === selectedRegionIds.value.provinsi);
+    form.value.provinsi = selectedProv ? selectedProv.name : '';
+    validateField('provinsi');
+
+    // Fetch Kota
+    if (selectedRegionIds.value.provinsi) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/regencies/${selectedRegionIds.value.provinsi}.json`);
+            regencies.value = await res.json();
+        } catch (e) { console.error(e); }
+    }
+};
+
+// 3. Fetch Kecamatan
+const handleKotaChange = async () => {
+    // Reset child fields
+    districts.value = []; villages.value = [];
+    selectedRegionIds.value.kecamatan = ''; selectedRegionIds.value.desa = '';
+    form.value.kecamatan = ''; form.value.desa = '';
+
+    // Set Nama Kota ke Form
+    const selectedKota = regencies.value.find(r => r.id === selectedRegionIds.value.kota);
+    form.value.kota = selectedKota ? selectedKota.name : '';
+    validateField('kota');
+
+    // Fetch Kecamatan
+    if (selectedRegionIds.value.kota) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/districts/${selectedRegionIds.value.kota}.json`);
+            districts.value = await res.json();
+        } catch (e) { console.error(e); }
+    }
+};
+
+// 4. Fetch Desa/Kelurahan
+const handleKecamatanChange = async () => {
+    // Reset child fields
+    villages.value = [];
+    selectedRegionIds.value.desa = '';
+    form.value.desa = '';
+
+    // Set Nama Kecamatan ke Form
+    const selectedKec = districts.value.find(d => d.id === selectedRegionIds.value.kecamatan);
+    form.value.kecamatan = selectedKec ? selectedKec.name : '';
+    validateField('kecamatan');
+
+    // Fetch Desa
+    if (selectedRegionIds.value.kecamatan) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/villages/${selectedRegionIds.value.kecamatan}.json`);
+            villages.value = await res.json();
+        } catch (e) { console.error(e); }
+    }
+};
+
+// 5. Set Desa Terakhir
+const handleDesaChange = () => {
+    const selectedDesa = villages.value.find(v => v.id === selectedRegionIds.value.desa);
+    form.value.desa = selectedDesa ? selectedDesa.name : '';
+    validateField('desa');
+};
+
+// --- INITIALIZE ---
+onMounted(() => {
+    fetchProvinces();
 });
 
-// Menggunakan @mousedown.prevent di template agar tidak bentrok dengan @blur
-const selectProvinsi = (prov: string) => {
-    form.value.provinsi = prov;
-    showProvinsiList.value = false;
-    validateField('provinsi');
-};
+// --- HELPER & VALIDATION ---
 
-const handleProvinsiBlur = () => {
-    // Delay sedikit agar klik dropdown sempat tereksekusi
-    setTimeout(() => {
-        showProvinsiList.value = false;
-        validateField('provinsi');
-    }, 200);
-};
-
-// 2. Handle File Upload (Fix TypeScript)
 const handleFileChange = (e: Event, type: 'foto' | 'ktp') => {
     const target = e.target as HTMLInputElement;
     if (target.files && target.files.length > 0) {
-        // Force cast ke File atau null agar TypeScript tidak rewel
         const file = target.files[0] || null; 
-
         if (type === 'foto') {
             fileFoto.value = file;
             errors.value.foto = '';
@@ -77,23 +154,18 @@ const handleFileChange = (e: Event, type: 'foto' | 'ktp') => {
     }
 };
 
-// 3. Validasi Field
 const validateField = (field: string) => {
     const val = form.value[field as keyof typeof form.value];
-    errors.value[field] = ''; // Reset
+    errors.value[field] = ''; 
 
-    // Cek Kosong
     if (!val || val === '') {
         errors.value[field] = 'Wajib diisi';
         return;
     }
 
-    // Validasi Spesifik
     if (field === 'password') {
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!regex.test(val as string)) {
-            errors.value.password = "Min 8 kar, Besar, kecil, angka & simbol.";
-        }
+        if (!regex.test(val as string)) errors.value.password = "Min 8 kar, Besar, kecil, angka & simbol.";
     }
     if (field === 'nik') {
         if (!/^\d+$/.test(val as string)) errors.value.nik = "Harus angka.";
@@ -108,17 +180,14 @@ const validateField = (field: string) => {
     }
 };
 
-// 4. Handle Register (Kirim ke Backend)
 const handleRegister = async () => {
     let isValid = true;
     
-    // Validasi Text
     Object.keys(form.value).forEach(key => {
         validateField(key);
         if (errors.value[key]) isValid = false;
     });
 
-    // Validasi File
     if (!fileFoto.value) { errors.value.foto = "Wajib upload"; isValid = false; }
     if (!fileKtp.value) { errors.value.fotoKtp = "Wajib upload"; isValid = false; }
 
@@ -127,27 +196,22 @@ const handleRegister = async () => {
         return;
     }
 
-    // --- PROSES KIRIM ---
     isLoading.value = true;
     const formData = new FormData();
     
-    // Append Text
     Object.keys(form.value).forEach(key => {
         formData.append(key, form.value[key as keyof typeof form.value]);
     });
-    // Append File
     if (fileFoto.value) formData.append('foto', fileFoto.value);
     if (fileKtp.value) formData.append('fotoKtp', fileKtp.value);
 
     try {
         await penjualRegister(formData);
-
         alert("Registrasi Berhasil! Silakan Login.");
         router.push('/login');
-
     } catch (error: any) {
         console.error(error);
-        if (error.response && error.response.data && error.response.data.message) {
+        if (error.response?.data?.message) {
             alert("Gagal: " + error.response.data.message);
         } else {
             alert("Terjadi kesalahan pada server.");
@@ -243,10 +307,71 @@ const handleRegister = async () => {
                 </div>
             </div>
 
-            <!-- ALAMAT LENGKAP -->
+            <!-- ALAMAT LENGKAP (WILAYAH API) -->
             <div>
                 <h3 class="text-lg font-medium text-purple-700 mb-3 mt-4 border-t pt-4">Alamat Lengkap</h3>
                 <div class="space-y-4">
+                    
+                    <!-- PROVINSI -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Provinsi <span class="text-red-500">*</span></label>
+                        <select 
+                            v-model="selectedRegionIds.provinsi" 
+                            @change="handleProvinsiChange" 
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white"
+                        >
+                            <option value="" disabled>-- Pilih Provinsi --</option>
+                            <option v-for="prov in provinces" :key="prov.id" :value="prov.id">{{ prov.name }}</option>
+                        </select>
+                        <p v-if="errors.provinsi" class="mt-1 text-xs text-red-600">{{ errors.provinsi }}</p>
+                    </div>
+
+                    <!-- KOTA/KABUPATEN -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Kota/Kabupaten <span class="text-red-500">*</span></label>
+                        <select 
+                            v-model="selectedRegionIds.kota" 
+                            @change="handleKotaChange"
+                            :disabled="!selectedRegionIds.provinsi"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100"
+                        >
+                            <option value="" disabled>-- Pilih Kota/Kab --</option>
+                            <option v-for="city in regencies" :key="city.id" :value="city.id">{{ city.name }}</option>
+                        </select>
+                        <p v-if="errors.kota" class="mt-1 text-xs text-red-600">{{ errors.kota }}</p>
+                    </div>
+
+                    <!-- KECAMATAN (BARU) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Kecamatan <span class="text-red-500">*</span></label>
+                        <select 
+                            v-model="selectedRegionIds.kecamatan"
+                            @change="handleKecamatanChange" 
+                            :disabled="!selectedRegionIds.kota"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100"
+                        >
+                            <option value="" disabled>-- Pilih Kecamatan --</option>
+                            <option v-for="dist in districts" :key="dist.id" :value="dist.id">{{ dist.name }}</option>
+                        </select>
+                        <p v-if="errors.kecamatan" class="mt-1 text-xs text-red-600">{{ errors.kecamatan }}</p>
+                    </div>
+
+                    <!-- DESA/KELURAHAN -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Kelurahan/Desa <span class="text-red-500">*</span></label>
+                        <select 
+                            v-model="selectedRegionIds.desa"
+                            @change="handleDesaChange"
+                            :disabled="!selectedRegionIds.kecamatan"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100"
+                        >
+                            <option value="" disabled>-- Pilih Desa --</option>
+                            <option v-for="vill in villages" :key="vill.id" :value="vill.id">{{ vill.name }}</option>
+                        </select>
+                        <p v-if="errors.desa" class="mt-1 text-xs text-red-600">{{ errors.desa }}</p>
+                    </div>
+
+                    <!-- JALAN & RT/RW -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Jalan <span class="text-red-500">*</span></label>
                         <input v-model="form.jalan" @blur="validateField('jalan')" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
@@ -262,47 +387,7 @@ const handleRegister = async () => {
                             <input v-model="form.rw" @blur="validateField('rw')" type="text" maxlength="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Kelurahan/Desa <span class="text-red-500">*</span></label>
-                            <input v-model="form.desa" @blur="validateField('desa')" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
-                            <p v-if="errors.desa" class="mt-1 text-xs text-red-600">{{ errors.desa }}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Kota/Kabupaten <span class="text-red-500">*</span></label>
-                            <input v-model="form.kota" @blur="validateField('kota')" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
-                            <p v-if="errors.kota" class="mt-1 text-xs text-red-600">{{ errors.kota }}</p>
-                        </div>
-                    </div>
 
-                    <!-- PROVINSI SEARCHABLE -->
-                    <div class="relative">
-                        <label class="block text-sm font-medium text-gray-700">Provinsi <span class="text-red-500">*</span></label>
-                        <input 
-                            v-model="form.provinsi" 
-                            @focus="showProvinsiList = true"
-                            @blur="handleProvinsiBlur" 
-                            type="text" 
-                            placeholder="Cari Provinsi..."
-                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                            autocomplete="off"
-                        >
-                        <!-- Dropdown (PENTING: pakai mousedown.prevent) -->
-                        <ul v-if="showProvinsiList && filteredProvinsi.length > 0" class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-                            <li 
-                                v-for="prov in filteredProvinsi" 
-                                :key="prov"
-                                @mousedown.prevent="selectProvinsi(prov)" 
-                                class="text-gray-900 cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-purple-100"
-                            >
-                                <span class="font-normal block truncate">{{ prov }}</span>
-                            </li>
-                        </ul>
-                        <div v-if="showProvinsiList && filteredProvinsi.length === 0" class="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-2 px-3 text-sm text-gray-500">
-                            Provinsi tidak ditemukan.
-                        </div>
-                        <p v-if="errors.provinsi" class="mt-1 text-xs text-red-600">{{ errors.provinsi }}</p>
-                    </div>
                 </div>
             </div>
 
