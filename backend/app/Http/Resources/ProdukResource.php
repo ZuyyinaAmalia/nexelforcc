@@ -11,12 +11,12 @@ class ProdukResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'nama_produk' => $this->namaProduk, 
+            'namaProduk' => $this->namaProduk, 
             'deskripsi' => $this->deskripsi,
             'harga' => (int) $this->harga, 
             'stok' => (int) $this->stok,
-            'statusProduk' => $this->statusProduk, 
-            'foto_url' => $this->fotoProduk, 
+            'kondisi' => $this->kondisi, 
+            'fotoProduk' => $this->fotoProduk, 
             
             'created_at' => $this->created_at, 
             

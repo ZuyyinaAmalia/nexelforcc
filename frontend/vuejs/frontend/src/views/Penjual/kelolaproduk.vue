@@ -1,56 +1,56 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useProdukStore, usePenjualStore, useKategoriStore } from '@/stores';
 
 const router = useRouter();
 const showModal = ref(false);
 const modalMode = ref('add'); // 'add' atau 'edit'
-const products = ref([]);
+const produkStore = useProdukStore();
+const penjualStore = usePenjualStore();
+const kategoriStore = useKategoriStore();
 
 const formData = ref({
   id: null,
-  nama: '',
-  kategori: '',
+  namaProduk: '',
+  deskripsi: '',
+  kondisi: '',
   harga: '',
   stok: '',
-  kondisi:'',
-  deskripsi: '',
-  gambar: ''
+  kategori_id: '',
+  fotoProduk: null
 });
 
 const imageFile = ref(null);
 const imagePreview = ref('');
 const searchQuery = ref('');
+const isSubmitting = ref(false);
 
-onMounted(() => {
-  loadProducts();
+onMounted(async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    router.push('/login');
+    return;
+  }
+
+  await loadProducts();
+  await loadKategori();
 });
 
-const loadProducts = () => {
-  // TODO: Fetch dari API backend
-  // Sementara data dummy
-  products.value = [
-    {
-      id: 1,
-      nama: 'Laptop Gaming ASUS ROG',
-      kategori: 'Elektronik',
-      harga: 15000000,
-      kondisi:'Baru',
-      stok: 10,
-      deskripsi: 'Laptop gaming dengan performa tinggi',
-      gambar: 'https://via.placeholder.com/150'
-    },
-    {
-      id: 2,
-      nama: 'Mouse Wireless Logitech',
-      kategori: 'Aksesoris',
-      harga: 250000,
-      kondisi:'Baru',
-      stok: 50,
-      deskripsi: 'Mouse wireless dengan koneksi stabil',
-      gambar: 'https://via.placeholder.com/150'
-    }
-  ];
+const loadProducts = async () => {
+  try {
+    await produkStore.fetchAllProduk();
+  } catch (error) {
+    console.error('Error loading products:', error);
+  }
+};
+
+const loadKategori = async () => {
+  try {
+    await kategoriStore.fetchAllKategori();
+  } catch (error) {
+    console.error('Error loading categories:', error);
+  }
 };
 
 const openAddModal = () => {
@@ -61,8 +61,24 @@ const openAddModal = () => {
 
 const openEditModal = (product) => {
   modalMode.value = 'edit';
-  formData.value = { ...product };
-  imagePreview.value = product.gambar || '';
+
+  formData.value = {
+    id: product.id,
+    namaProduk: product.namaProduk,
+    deskripsi: product.deskripsi,
+    kondisi: product.kondisi,
+    harga: product.harga,
+    stok: product.stok,
+    kategori_id: product.kategori?.id || product.kategori_id,
+    fotoProduk: product.fotoProduk
+  };
+  
+  if (product.fotoProduk) {
+    imagePreview.value = product.fotoProduk;
+  } else {
+    imagePreview.value = '';
+  }
+  
   showModal.value = true;
 };
 
@@ -74,13 +90,13 @@ const closeModal = () => {
 const resetForm = () => {
   formData.value = {
     id: null,
-    nama: '',
-    kategori: '',
+    namaProduk: '',
+    kategori_id: '',
     harga: '',
-    kondisi:'',
     stok: '',
+    kondisi: '',
     deskripsi: '',
-    gambar: ''
+    fotoProduk: null  
   };
   imageFile.value = null;
   imagePreview.value = '';
@@ -103,32 +119,71 @@ const handleImageChange = (event) => {
 const removeImage = () => {
   imageFile.value = null;
   imagePreview.value = '';
-  formData.value.gambar = '';
+  formData.value.fotoProduk = null;
 };
 
-const handleSubmit = () => {
-  if (modalMode.value === 'add') {
-    // TODO: POST ke API
-    const newProduct = {
-      ...formData.value,
-      id: products.value.length + 1,
-      gambar: 'https://via.placeholder.com/150'
-    };
-    products.value.push(newProduct);
-  } else {
-    // TODO: PUT ke API
-    const index = products.value.findIndex(p => p.id === formData.value.id);
-    if (index !== -1) {
-      products.value[index] = { ...formData.value };
-    }
+const handleSubmit = async () => {
+  if (!formData.value.namaProduk || !formData.value.harga || !formData.value.kategori_id) {
+    alert('Mohon lengkapi data wajib!');
+    return;
   }
-  closeModal();
+
+  isSubmitting.value = true;
+
+  try {
+    // 1. Upload gambar jika ada file baru
+    let fotoUrl = formData.value.fotoProduk;
+    
+    if (imageFile.value) {
+      const uploadResult = await produkStore.uploadGambar(imageFile.value);
+      if (uploadResult.success) {
+        fotoUrl = uploadResult.url;
+      } else {
+        alert('Gagal mengupload gambar: ' + uploadResult.message);
+        isSubmitting.value = false;
+        return;
+      }
+    }
+
+    // 2. Siapkan data payload
+    const payload = {
+      namaProduk: formData.value.namaProduk,
+      deskripsi: formData.value.deskripsi,
+      kondisi: formData.value.kondisi,
+      harga: formData.value.harga,
+      stok: formData.value.stok,
+      kategori_id: formData.value.kategori_id,
+      fotoProduk: fotoUrl
+    };
+
+    // 3. Kirim ke API
+    let result;
+    if (modalMode.value === 'add') {
+      result = await produkStore.createProduk(payload);
+    } else {
+      result = await produkStore.editProduk(formData.value.id, payload);
+    }
+
+    if (result.success) {
+      closeModal();
+      // alert(result.message); // Optional feedback
+    } else {
+      alert('Gagal menyimpan produk: ' + result.message);
+    }
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    alert('Terjadi kesalahan saat menyimpan data.');
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
-const deleteProduct = (productId) => {
+const deleteProduct = async (productId) => {
   if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-    // TODO: DELETE ke API
-    products.value = products.value.filter(p => p.id !== productId);
+    const result = await produkStore.removeProduk(productId);
+    if (!result.success) {
+      alert('Gagal menghapus produk: ' + result.message);
+    }
   }
 };
 
@@ -141,10 +196,13 @@ const formatRupiah = (value) => {
 };
 
 const filteredProducts = computed(() => {
-  if (!searchQuery.value) return products.value;
-  return products.value.filter(product => 
-    product.nama.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    product.kategori.toLowerCase().includes(searchQuery.value.toLowerCase())
+  const products = produkStore.produkList || [];
+  if (!searchQuery.value) return products;
+  
+  const query = searchQuery.value.toLowerCase();
+  return products.filter(product => 
+    product.namaProduk.toLowerCase().includes(query) ||
+    (product.kategori?.nama_kategori || '').toLowerCase().includes(query)
   );
 });
 </script>
@@ -186,8 +244,13 @@ const filteredProducts = computed(() => {
       </div>
     </div>
     
+    <!-- Loading State -->
+    <div v-if="produkStore.isLoading && !showModal" class="flex justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
+
     <!-- Products Table -->
-    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+    <div v-else class="bg-white rounded-xl shadow-md overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -204,15 +267,19 @@ const filteredProducts = computed(() => {
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 transition-colors duration-150">
               <td class="px-6 py-4 whitespace-nowrap">
-                <img :src="product.gambar" :alt="product.nama" class="w-16 h-16 object-cover rounded-lg" />
+                <img 
+                  :src="product.fotoProduk || 'https://via.placeholder.com/150'" 
+                  :alt="product.namaProduk" 
+                  class="w-16 h-16 object-cover rounded-lg" 
+                />
               </td>
               <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">{{ product.nama }}</div>
+                <div class="text-sm font-medium text-gray-900">{{ product.namaProduk }}</div>
                 <div class="text-sm text-gray-500 line-clamp-1">{{ product.deskripsi }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                  {{ product.kategori }}
+                  {{ product.kategori?.nama_kategori || 'Uncategorized' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
@@ -257,7 +324,7 @@ const filteredProducts = computed(() => {
             </tr>
             
             <tr v-if="filteredProducts.length === 0">
-              <td colspan="6" class="px-6 py-12 text-center">
+              <td colspan="7" class="px-6 py-12 text-center">
                 <div class="text-gray-500">
                   <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -293,7 +360,7 @@ const filteredProducts = computed(() => {
                 <div>
                   <label for="nama" class="block text-sm font-medium text-gray-700 mb-1">Nama Produk</label>
                   <input
-                    v-model="formData.nama"
+                    v-model="formData.namaProduk"
                     type="text"
                     id="nama"
                     required
@@ -305,14 +372,17 @@ const filteredProducts = computed(() => {
                 <div class="grid grid-cols-2 gap-4">
                   <div>
                     <label for="kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                    <input
-                      v-model="formData.kategori"
-                      type="text"
+                    <select
+                      v-model="formData.kategori_id"
                       id="kategori"
                       required
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      placeholder="Masukkan kategori"
-                    />
+                    >
+                      <option value="" disabled>Pilih Kategori</option>
+                      <option v-for="kat in kategoriStore.kategoriList" :key="kat.id" :value="kat.id">
+                        {{ kat.nama_kategori }}
+                      </option>
+                    </select>
                   </div>
                   <div>
                     <label for="harga" class="block text-sm font-medium text-gray-700 mb-1">Harga</label>
@@ -414,8 +484,15 @@ const filteredProducts = computed(() => {
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
               <button
                 type="submit"
-                class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors duration-200"
+                :disabled="isSubmitting"
+                class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                <span v-if="isSubmitting" class="mr-2">
+                  <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </span>
                 {{ modalMode === 'add' ? 'Tambah' : 'Simpan' }}
               </button>
               <button

@@ -41,7 +41,7 @@ class ProdukController extends Controller
             'stok' => 'nullable|integer|min:0',
             'fotoProduk' => 'nullable|string',
             'kategori_id' => 'nullable|integer',
-            'statusProduk' => 'required|in:Baru,Bekas',
+            'kondisi' => 'required|in:Baru,Bekas',
         ]);
 
         // Auto-assign penjual_id jika user adalah penjual
@@ -78,7 +78,7 @@ class ProdukController extends Controller
         'stok' => 'nullable|integer|min:0',
         'fotoProduk' => 'nullable|string',
         'kategori_id' => 'nullable|integer',
-        'statusProduk' => 'sometimes|required|in:Baru,Bekas',
+        'kondisi' => 'sometimes|required|in:Baru,Bekas',
         ]);
 
         $produk->update($data);

@@ -19,7 +19,6 @@ class Produk extends Model
         'fotoProduk',
         'kategori_id',
         'penjual_id',
-        'statusProduk',
     ];
 
     protected $casts = [

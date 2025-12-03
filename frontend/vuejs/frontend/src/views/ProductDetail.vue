@@ -100,7 +100,7 @@ const fetchProductDetail = async () => {
             name: apiData.namaProduk,
             price: apiData.harga,
             description: apiData.deskripsi,
-            condition: apiData.statusProduk,
+            condition: apiData.kondisi,
             stok: apiData.stok,
             
             seller: {

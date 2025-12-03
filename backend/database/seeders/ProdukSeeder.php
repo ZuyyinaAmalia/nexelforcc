@@ -23,7 +23,7 @@ class ProdukSeeder extends Seeder
                 'fotoProduk' => $imagePath . 'laptop1.png', 
                 'penjual_id' => 1,
                 'kategori_id' => 1,
-                'statusProduk' => 'Baru',
+                'kondisi' => 'Baru',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],
@@ -38,7 +38,7 @@ class ProdukSeeder extends Seeder
                 'fotoProduk' => $imagePath . 'typec1.png', 
                 'penjual_id' => 1,
                 'kategori_id' => 2,
-                'statusProduk' => 'Bekas',
+                'kondisi' => 'Bekas',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]
