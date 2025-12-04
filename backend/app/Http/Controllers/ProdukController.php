@@ -20,7 +20,6 @@ class ProdukController extends Controller
 
         // 1. Logic untuk Penjual (hanya tampilkan produk mereka)
         if ($request->user() && method_exists($request->user(), 'produks')) {
-            // Jika ada user yang login (penjual), filter produk berdasarkan penjual
             $query->where('penjual_id', $request->user()->id);
         }
 
@@ -28,9 +27,8 @@ class ProdukController extends Controller
         if ($request->has('kategori')) {
             $categoryName = $request->query('kategori');
 
-            //  whereHas untuk memfilter produk berdasarkan nama kategori
             $query->whereHas('kategori', function ($q) use ($categoryName) {
-                // Pastikan sesuai dengan nama kolom di tabel kategoris
+                // Kolom 'namaKategori' diapit kutip ganda untuk PostgreSQL (Case-Sensitive)
                 $q->whereRaw('LOWER("namaKategori") = ?', [strtolower($categoryName)]);
             });
         }
@@ -108,10 +106,10 @@ class ProdukController extends Controller
      */
     public function search(Request $request)
     {
-        // Ambil query pencarian dari parameter 'q'
         $searchQuery = $request->input('q');
+        $keyword = '%' . strtolower($searchQuery) . '%';
+        $perPage = (int) $request->query('per_page', 15);
 
-        // Pastikan query tidak kosong atau terlalu pendek
         if (empty($searchQuery) || strlen($searchQuery) < 1) { 
             return response()->json([
                 'data' => [], 
@@ -119,22 +117,40 @@ class ProdukController extends Controller
             ], 200);
         }
 
-        // Inisialisasi query builder
-        $query = Produk::with(['penjual', 'kategori']);
+        // 2. Inisialisasi Query Builder dengan Join
+        $query = Produk::query()
+            ->join('penjuals', 'produks.penjual_id', '=', 'penjuals.id')
+            ->join('alamats', 'penjuals.id', '=', 'alamats.penjual_id')
+            ->join('kategoris', 'produks.kategori_id', '=', 'kategoris.id');
 
-        // Filter: Cari produk yang namaProduk atau deskripsi mengandung kata kunci
-        // Menggunakan LIKE dan % untuk pencarian parsial (partial search)
-        $query->where(function ($q) use ($searchQuery) {
-            $q->where('namaProduk', 'LIKE', '%' . $searchQuery . '%')
-              ->orWhere('deskripsi', 'LIKE', '%' . $searchQuery . '%');
+        // 3. Logika Pencarian Gabungan (WHERE)
+        $query->where(function ($q) use ($keyword) {
+            
+            // FIX PENTING: Tambahkan kutip ganda pada nama kolom CamelCase di PostgreSQL
+            $q->whereRaw('LOWER(produks."namaProduk") LIKE ?', [$keyword]) // <--- PERUBAHAN DI SINI
+            ->orWhereRaw('LOWER(produks.deskripsi) LIKE ?', [$keyword])
+            
+            // FIX PENTING: Tambahkan kutip ganda pada nama kolom CamelCase 'namaToko'
+            ->orWhereRaw('LOWER(penjuals."namaToko") LIKE ?', [$keyword]) // <--- PERUBAHAN DI SINI
+            
+            // 'namaKategori' sudah benar diperbaiki di langkah sebelumnya
+            ->orWhereRaw('LOWER(kategoris."namaKategori") LIKE ?', [$keyword])
+            
+            // Kolom snake_case/lowercase seperti 'kota' dan 'provinsi' tidak butuh kutip ganda
+            ->orWhereRaw('LOWER(alamats.kota) LIKE ?', [$keyword])
+            ->orWhereRaw('LOWER(alamats.provinsi) LIKE ?', [$keyword]);
         });
+        
+        // 4. Ambil Hasil
+        $produks = $query
+            ->select('produks.*') 
+            ->with(['penjual.alamat', 'kategori']) 
+            ->latest() 
+            ->paginate($perPage);
 
-        // Ambil hasil produk
-        $produk = $query->get();
-
-        if ($produk->count() > 0) {
-            // Menggunakan ProdukResource untuk format output yang konsisten
-            return ProdukResource::collection($produk);
+        // 5. Response
+        if ($produks->count() > 0) {
+            return response()->json($produks, 200);
         } else {
             return response()->json([
                 'data' => [], 
@@ -142,6 +158,8 @@ class ProdukController extends Controller
             ], 200);
         }
     }
+
+
 
 
     /**

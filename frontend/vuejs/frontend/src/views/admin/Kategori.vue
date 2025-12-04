@@ -187,7 +187,6 @@ onMounted(() => {
           @click="openAddModal"
           class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
         >
-          <span class="text-lg">➕</span>
           Tambah Kategori
         </button>
       </div>

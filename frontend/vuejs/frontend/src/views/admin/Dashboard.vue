@@ -18,6 +18,14 @@ interface Stats {
   }
 }
 
+import { 
+  UsersIcon, 
+  ChatBubbleLeftRightIcon, // atau StarIcon
+  ChartBarIcon, 
+  CubeIcon,
+  ArrowDownTrayIcon
+} from '@heroicons/vue/24/solid'
+
 const stats = ref<Stats | null>(null)
 const loading = ref(true)
 
@@ -112,7 +120,7 @@ onMounted(() => {
             <p class="text-purple-100 text-xs mt-2">{{ stats?.user_penjual_status.aktif || 0 }} Aktif</p>
           </div>
           <div class="bg-white/20 p-3 rounded-lg">
-            <span class="text-3xl">👥</span>
+            <UsersIcon class="w-8 h-8 text-white" />
           </div>
         </div>
       </div>
@@ -127,7 +135,7 @@ onMounted(() => {
             </p>
           </div>
           <div class="bg-white/20 p-3 rounded-lg">
-            <span class="text-3xl">⭐</span>
+            <ChatBubbleLeftRightIcon class="w-8 h-8 text-white" />
           </div>
         </div>
       </div>
@@ -140,7 +148,7 @@ onMounted(() => {
             <p class="text-green-100 text-xs mt-2">Dari skala 1-5</p>
           </div>
           <div class="bg-white/20 p-3 rounded-lg">
-            <span class="text-3xl">📊</span>
+            <ChartBarIcon class="w-8 h-8 text-white" />
           </div>
         </div>
       </div>
@@ -171,7 +179,7 @@ onMounted(() => {
         </div>
 
         <div class="absolute bottom-4 right-4 bg-white/20 p-3 rounded-lg z-0">
-            <span class="text-3xl">📦</span>
+            <CubeIcon class="w-8 h-8 text-white" />
         </div>
       </div>
     </div>

@@ -130,7 +130,7 @@ Route::prefix('penjual')->group(function () {
                     'gambar' => 'required|image|mimes:jpeg,png,jpg|max:2048'
                 ]);
                 
-                $path = $request->file('gambar')->store('produk', 'public');
+                $path = $request->file('gambar')->store('images/produks', 'public');
                 
                 return response()->json([
                     'message' => 'Gambar berhasil diupload',

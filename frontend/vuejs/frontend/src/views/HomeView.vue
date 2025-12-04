@@ -52,8 +52,8 @@ const fetchCategories = async () => {
 
         categories.value = apiCategories.map((k: any) => ({
             // Mengambil namaKategori dari Laravel Resource
-            name: k.nama_kategori, 
-            icon: getIcon(k.nama_kategori)
+            name: k.namaKategori, 
+            icon: getIcon(k.namaKategori)
         }));
 
     } catch (err: any) {
@@ -96,9 +96,11 @@ const fetchProducts = async () => {
             price: p.harga, 
             rating: 4.8, 
             totalReviews: 126, 
-            sellerCity: p.penjual ? p.penjual.nama_toko : 'N/A', 
-            image: p.foto_url 
-                ? `${LARAVEL_BASE_URL}/storage/${p.foto_url}` 
+            nama_toko: p.penjual 
+                     ? (p.penjual.nama_toko || p.penjual.namaToko)
+                    : 'N/A', 
+            image: p.fotoProduk
+                ? p.fotoProduk
                 : 'https://source.unsplash.com/random/400x400/?laptop,charger', 
         }));
 
@@ -272,11 +274,17 @@ const formatPrice = (price: number) => {
                                 <span class="text-yellow-400 mr-1">★</span>
                                 <span>{{ product.rating }}</span>
                                 <span class="mx-1">•</span>
-                                <span>{{ product.sellerCity }}</span>
+                                <span>{{ product.nama_toko }}</span>
                             </div>
                         </div>
+
+
+                        
                     </router-link>
                 </div>
+
+
+
             </div>
         </main>
         

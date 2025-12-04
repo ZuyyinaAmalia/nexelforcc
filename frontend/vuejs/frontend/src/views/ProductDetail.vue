@@ -114,7 +114,7 @@ const fetchProductDetail = async () => {
             category: [apiData.kategori ? apiData.kategori.namaKategori : 'Tidak Berkategori', 'Detail'],
             
             image: apiData.fotoProduk
-                ? `${LARAVEL_BASE_URL}/storage/${apiData.fotoProduk}`
+                ? apiData.fotoProduk
                 : 'https://images.unsplash.com/photo-1695048134431-e92db4cf1975?q=80&w=1000',
             
             // ⭐ PERBAIKAN: Menggunakan fungsi calculateAverageRating dengan `mappedReviews`

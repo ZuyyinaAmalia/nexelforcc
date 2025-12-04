@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Review;
+use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Validator; 
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ReviewTerima;
+
 class ReviewController extends Controller
 {
     /**
@@ -91,6 +95,32 @@ class ReviewController extends Controller
         // 2. Simpan Data
         $data = $request->except(['id']);
         $review = Review::create($data);
+
+        //  KIRIM EMAIL UCAPAN TERIMA KASIH
+        try {
+            // Ambil detail produk
+            $produk = Produk::find($request->produk_id);
+            
+            if ($produk) {
+                // Kirim email
+                Mail::to($request->emailPengunjung)->send(
+                    new ReviewTerima(
+                        $request->namaPengunjung,
+                        $produk->namaProduk,
+                        $request->rating,
+                        $request->ulasan,
+                        $request->noHpPengunjung,
+                        $request->provinsiPengunjung
+                    )
+                );
+                
+                // Log sukses
+                \Log::info('Email review terima kasih berhasil dikirim ke: ' . $request->emailPengunjung);
+            }
+        } catch (\Exception $e) {
+            // Jangan batalkan review jika email gagal
+            \Log::error('Error sending review email: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'success',

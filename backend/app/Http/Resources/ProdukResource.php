@@ -19,6 +19,7 @@ class ProdukResource extends JsonResource
             'fotoProduk' => $this->fotoProduk, 
             
             'created_at' => $this->created_at, 
+
             
             'rating' => $this->reviews_avg_rating ? round($this->reviews_avg_rating, 1) : 0,
             
