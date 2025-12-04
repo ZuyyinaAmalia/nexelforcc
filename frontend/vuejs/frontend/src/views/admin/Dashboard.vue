@@ -112,99 +112,95 @@ onMounted(() => {
 
   <div v-else class="space-y-6">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-purple-100 text-sm font-medium">Total Penjual</p>
-            <h3 class="text-3xl font-bold mt-2">{{ stats?.user_penjual_status.total || 0 }}</h3>
-            <p class="text-purple-100 text-xs mt-2">{{ stats?.user_penjual_status.aktif || 0 }} Aktif</p>
-          </div>
-          <div class="bg-white/20 p-3 rounded-lg">
-            <UsersIcon class="w-8 h-8 text-white" />
-          </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-purple-500 flex justify-between items-center transition-transform hover:-translate-y-1">
+        <div>
+          <p class="text-gray-500 text-sm font-medium">Total Penjual</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ stats?.user_penjual_status.total || 0 }}</h3>
+          <p class="text-purple-600 text-xs mt-1 font-medium bg-purple-50 px-2 py-1 rounded-md inline-block">
+            {{ stats?.user_penjual_status.aktif || 0 }} Aktif
+          </p>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
+          <UsersIcon class="w-6 h-6 text-purple-600" />
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-6 text-white shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-pink-100 text-sm font-medium">Total Review</p>
-            <h3 class="text-3xl font-bold mt-2">{{ stats?.pengunjung_review_stats.total_reviews || 0 }}</h3>
-            <p class="text-pink-100 text-xs mt-2">
-              Dari {{ stats?.pengunjung_review_stats.unique_visitors || 0 }} pengunjung
-            </p>
-          </div>
-          <div class="bg-white/20 p-3 rounded-lg">
-            <ChatBubbleLeftRightIcon class="w-8 h-8 text-white" />
-          </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-pink-500 flex justify-between items-center transition-transform hover:-translate-y-1">
+        <div>
+          <p class="text-gray-500 text-sm font-medium">Total Review</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ stats?.pengunjung_review_stats.total_reviews || 0 }}</h3>
+          <p class="text-gray-400 text-xs mt-1">
+            Dari {{ stats?.pengunjung_review_stats.unique_visitors || 0 }} pengunjung
+          </p>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center shrink-0">
+          <ChatBubbleLeftRightIcon class="w-6 h-6 text-pink-500" />
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-green-100 text-sm font-medium">Rata-rata Rating</p>
-            <h3 class="text-3xl font-bold mt-2">{{ stats?.pengunjung_review_stats.average_rating || 0 }}</h3>
-            <p class="text-green-100 text-xs mt-2">Dari skala 1-5</p>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500 flex justify-between items-center transition-transform hover:-translate-y-1">
+        <div>
+          <p class="text-gray-500 text-sm font-medium">Rata-rata Rating</p>
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ stats?.pengunjung_review_stats.average_rating || 0 }}</h3>
+          <div class="flex items-center gap-1 mt-1">
+            <span class="text-yellow-400 text-xs">★★★★★</span>
+            <span class="text-gray-400 text-xs">(Skala 1-5)</span>
           </div>
-          <div class="bg-white/20 p-3 rounded-lg">
-            <ChartBarIcon class="w-8 h-8 text-white" />
-          </div>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+          <ChartBarIcon class="w-6 h-6 text-green-600" />
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
-        
-        <div class="flex flex-col justify-between h-full z-10 relative">
-          
-          <div class="w-full">
-            <div class="flex justify-between items-start mb-2">
-                <p class="text-blue-100 text-sm font-medium">Total Produk</p>
-                
-                <button 
-                  @click="downloadReport('produk-rating')"
-                  :disabled="downloading"
-                  class="text-[10px] bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded backdrop-blur-sm transition-all flex items-center gap-1 shadow-sm border border-white/10"
-                  title="Unduh Laporan Produk & Rating"
-                >
-                  <span v-if="downloading">⏳</span>
-                  <span v-else>⬇️ PDF</span>
-                </button>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500 flex justify-between items-center transition-transform hover:-translate-y-1">
+        <div class="flex-1 pr-4"> <div class="flex justify-between items-center w-full mb-1">
+                <p class="text-gray-500 text-sm font-medium">Total Produk</p>
             </div>
-
-            <h3 class="text-3xl font-bold mt-1">{{ totalProduk }}</h3>
-            <p class="text-blue-100 text-xs mt-1">Semua kategori</p>
-          </div>
           
+          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ totalProduk }}</h3>
+          
+          <div class="flex items-center justify-between mt-2">
+            <p class="text-gray-400 text-xs">Semua kategori</p>
+             <button 
+                @click="downloadReport('produk-rating')"
+                :disabled="downloading"
+                class="text-[10px] bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                title="Unduh Laporan"
+              >
+                <span v-if="downloading">⏳</span>
+                <span v-else>⬇️ PDF</span>
+            </button>
+          </div>
         </div>
-
-        <div class="absolute bottom-4 right-4 bg-white/20 p-3 rounded-lg z-0">
-            <CubeIcon class="w-8 h-8 text-white" />
+        
+        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+          <CubeIcon class="w-6 h-6 text-blue-600" />
         </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <h3 class="text-lg font-bold text-gray-800 mb-4">Produk per Kategori</h3>
         <table class="w-full">
           <thead>
-            <tr class="border-b">
-              <th class="text-left py-2">Kategori</th>
-              <th class="text-right py-2">Jumlah</th>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 text-sm">Kategori</th>
+              <th class="text-right py-2 text-gray-600 text-sm">Jumlah</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in stats?.produk_per_kategori" :key="item.kategori" class="border-b">
-              <td class="py-2">{{ item.kategori }}</td>
-              <td class="text-right font-bold">{{ item.jumlah }}</td>
+            <tr v-for="item in stats?.produk_per_kategori" :key="item.kategori" class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+              <td class="py-3 text-sm text-gray-700">{{ item.kategori }}</td>
+              <td class="text-right font-bold text-gray-800 text-sm">{{ item.jumlah }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-bold text-gray-800">Status Penjual</h3>
           
@@ -213,17 +209,17 @@ onMounted(() => {
             :disabled="downloading"
             class="text-xs font-medium bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors flex items-center gap-1"
           >
-            <span v-if="downloading">⏳ Loading...</span>
-            <span v-else>⬇️ Unduh PDF</span>
+            <span v-if="downloading">⏳...</span>
+            <span v-else>⬇️ PDF</span>
           </button>
         </div>
 
         <div class="space-y-4">
-          <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+          <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg border border-green-100">
             <span class="font-medium text-gray-700">Aktif</span>
             <span class="text-2xl font-bold text-green-600">{{ stats?.user_penjual_status.aktif }}</span>
           </div>
-          <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+          <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg border border-red-100">
             <span class="font-medium text-gray-700">Tidak Aktif</span>
             <span class="text-2xl font-bold text-red-600">{{ stats?.user_penjual_status.tidak_aktif }}</span>
           </div>
@@ -231,7 +227,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm p-6">
+     <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-bold text-gray-800">Toko per Provinsi</h3>
         
@@ -240,43 +236,46 @@ onMounted(() => {
           :disabled="downloading"
           class="text-xs font-medium bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors flex items-center gap-1"
         >
-          <span v-if="downloading">⏳ Loading...</span>
-          <span v-else>⬇️ Unduh PDF</span>
+          <span v-if="downloading">⏳...</span>
+          <span v-else>⬇️ PDF</span>
         </button>
       </div>
 
       <table class="w-full">
         <thead>
-          <tr class="border-b">
-            <th class="text-left py-2">Provinsi</th>
-            <th class="text-right py-2">Jumlah Toko</th>
+          <tr class="border-b border-gray-100">
+            <th class="text-left py-2 text-gray-600 text-sm">Provinsi</th>
+            <th class="text-right py-2 text-gray-600 text-sm">Jumlah Toko</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in stats?.penjual_per_provinsi" :key="item.provinsi" class="border-b">
-            <td class="py-2">{{ item.provinsi }}</td>
-            <td class="text-right font-bold">{{ item.jumlah }}</td>
+          <tr v-for="item in stats?.penjual_per_provinsi" :key="item.provinsi" class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+            <td class="py-3 text-sm text-gray-700">{{ item.provinsi }}</td>
+            <td class="text-right font-bold text-gray-800 text-sm">{{ item.jumlah }}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm p-6">
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
       <h3 class="text-lg font-bold text-gray-800 mb-4">Distribusi Rating</h3>
       <table class="w-full">
         <thead>
-          <tr class="border-b">
-            <th class="text-left py-2">Rating</th>
-            <th class="text-right py-2">Jumlah Review</th>
+          <tr class="border-b border-gray-100">
+            <th class="text-left py-2 text-gray-600 text-sm">Rating</th>
+            <th class="text-right py-2 text-gray-600 text-sm">Jumlah Review</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in stats?.pengunjung_review_stats.rating_distribution" :key="item.rating" class="border-b">
-            <td class="py-2">{{ item.rating }} ⭐</td>
-            <td class="text-right font-bold">{{ item.jumlah }}</td>
+          <tr v-for="item in stats?.pengunjung_review_stats.rating_distribution" :key="item.rating" class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+            <td class="py-3 text-sm text-gray-700 flex items-center gap-1">
+                {{ item.rating }} <span class="text-yellow-400">★</span>
+            </td>
+            <td class="text-right font-bold text-gray-800 text-sm">{{ item.jumlah }}</td>
           </tr>
         </tbody>
       </table>
     </div>
+
   </div>
 </template>
