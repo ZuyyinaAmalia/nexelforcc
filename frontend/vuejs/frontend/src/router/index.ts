@@ -4,14 +4,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ProductDetail from '../views/ProductDetail.vue'
-import HomeView from '../views/HomeView.vue'  
+import HomeView from '../views/HomeView.vue'
 
 // 2. Import Halaman ADMIN (Dari folder src/views/admin/)
 import LoginAdmin from '../views/admin/LoginAdmin.vue'
 import AdminLayout from '../views/admin/AdminLayout.vue'
 import Dashboard from '../views/admin/Dashboard.vue'
 import VerifikasiPenjual from '../views/admin/VerifikasiPenjual.vue'
-
+import Kategori from '../views/admin/Kategori.vue'
 // 3. Import Halaman PENJUAL
 import DashboardPenjual from '@/views/Penjual/DashboardPenjual.vue'
 import KelolaProduk from '../views/Penjual/kelolaproduk.vue'
@@ -38,7 +38,7 @@ const router = createRouter({
     {
       path: '/home',
       name: 'home',
-      component: HomeView 
+      component: HomeView
     },
 
     {
@@ -86,6 +86,11 @@ const router = createRouter({
           path: 'verifikasi-penjual', // URL: /admin/verifikasi-penjual
           name: 'admin-verifikasi',
           component: VerifikasiPenjual
+        },
+        {
+          path: 'kategori', // URL: /admin/kategori
+          name: 'admin-kategori',
+          component: () => import('../views/admin/Kategori.vue')
         }
       ]
     }

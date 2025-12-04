@@ -4,7 +4,7 @@ import axios from 'axios'
 
 interface Kategori {
   id: number
-  namaKategori: string
+  namaKategori: string  // ✅ PERBAIKI: Sesuaikan dengan backend (camelCase)
   created_at: string
   updated_at: string
 }
@@ -15,39 +15,57 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const currentKategori = ref<Kategori | null>(null)
 
+// ✅ PERBAIKI: Gunakan field name yang sama dengan backend
 const formData = ref({
-  namaKategori: ''
+  namaKategori: ''  // BUKAN nama_kategori
 })
 
 const errors = ref<{ namaKategori?: string }>({})
 
-// Fetch semua kategori
+// SETUP AXIOS
+axios.defaults.baseURL = 'http://127.0.0.1:8000/api'
+const token = localStorage.getItem('token')
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+}
+
+// Fetch data kategori
 const fetchKategoris = async () => {
   loading.value = true
   try {
-    const response = await axios.get('http://localhost:8000/api/kategoris')
-    kategoris.value = response.data.data
-  } catch (error) {
+    const response = await axios.get('/admin/kategori')
+    console.log('API Response:', response.data)
+    
+    if (response.data.data) {
+      kategoris.value = response.data.data
+    } else if (Array.isArray(response.data)) {
+      kategoris.value = response.data
+    } else {
+      kategoris.value = []
+    }
+  } catch (error: any) {
     console.error('Error fetching kategoris:', error)
-    alert('Gagal memuat data kategori')
+    alert('Gagal memuat data kategori: ' + (error.response?.data?.message || error.message))
   } finally {
     loading.value = false
   }
 }
 
-// Buka modal untuk tambah kategori
+// Buka modal tambah
 const openAddModal = () => {
   isEditing.value = false
-  formData.value.namaKategori = ''
+  formData.value = { namaKategori: '' }
   errors.value = {}
   showModal.value = true
 }
 
-// Buka modal untuk edit kategori
+// Buka modal edit
 const openEditModal = (kategori: Kategori) => {
   isEditing.value = true
   currentKategori.value = kategori
-  formData.value.namaKategori = kategori.namaKategori
+  formData.value = {
+    namaKategori: kategori.namaKategori  // ✅ PERBAIKI
+  }
   errors.value = {}
   showModal.value = true
 }
@@ -55,12 +73,12 @@ const openEditModal = (kategori: Kategori) => {
 // Tutup modal
 const closeModal = () => {
   showModal.value = false
-  formData.value.namaKategori = ''
+  formData.value = { namaKategori: '' }
   errors.value = {}
   currentKategori.value = null
 }
 
-// Submit form (Create atau Update)
+// ✅ PERBAIKI: Submit form
 const submitForm = async () => {
   errors.value = {}
   
@@ -73,44 +91,47 @@ const submitForm = async () => {
   try {
     if (isEditing.value && currentKategori.value) {
       // Update
-      await axios.put(
-        `http://localhost:8000/api/kategoris/${currentKategori.value.id}`,
-        formData.value
+      const response = await axios.put(
+        `/admin/kategori/${currentKategori.value.id}`,
+        formData.value  // ✅ Sekarang mengirim { namaKategori: "..." }
       )
+      console.log('Update response:', response.data)
       alert('Kategori berhasil diupdate!')
     } else {
       // Create
-      await axios.post('http://localhost:8000/api/kategoris', formData.value)
+      const response = await axios.post('/admin/kategori', formData.value)
+      console.log('Create response:', response.data)
       alert('Kategori berhasil ditambahkan!')
     }
     
     closeModal()
-    fetchKategoris()
+    await fetchKategoris()
   } catch (error: any) {
+    console.error('Submit error:', error)
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
     } else if (error.response?.data?.message) {
-      alert(error.response.data.message)
+      alert('Error: ' + error.response.data.message)
     } else {
-      alert('Terjadi kesalahan')
+      alert('Terjadi kesalahan: ' + error.message)
     }
   } finally {
     loading.value = false
   }
 }
 
-// Hapus kategori
+// ✅ PERBAIKI: Hapus kategori (ada typo di sini!)
 const deleteKategori = async (id: number) => {
   if (!confirm('Yakin ingin menghapus kategori ini?')) return
   
   loading.value = true
   try {
-    await axios.delete(`http://localhost:8000/api/kategoris/${id}`)
+    await axios.delete(`/admin/kategori/${id}`)  // ✅ PERBAIKI: Gunakan () bukan ``
     alert('Kategori berhasil dihapus!')
-    fetchKategoris()
-  } catch (error) {
+    await fetchKategoris()
+  } catch (error: any) {
     console.error('Error deleting kategori:', error)
-    alert('Gagal menghapus kategori')
+    alert('Gagal menghapus kategori: ' + (error.response?.data?.message || error.message))
   } finally {
     loading.value = false
   }
@@ -118,14 +139,34 @@ const deleteKategori = async (id: number) => {
 
 // Format tanggal
 const formatDate = (dateString: string) => {
-  const options: Intl.DateTimeFormatOptions = { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  try {
+    if (!dateString) return '-'
+    
+    let date: Date
+    if (dateString.includes('T')) {
+      date = new Date(dateString)
+    } else if (dateString.includes('-')) {
+      date = new Date(dateString.replace(' ', 'T'))
+    } else {
+      date = new Date(dateString)
+    }
+    
+    if (isNaN(date.getTime())) {
+      return dateString
+    }
+    
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }
+    return date.toLocaleDateString('id-ID', options)
+  } catch (error) {
+    console.error('Date format error:', error, dateString)
+    return dateString
   }
-  return new Date(dateString).toLocaleDateString('id-ID', options)
 }
 
 onMounted(() => {
@@ -247,3 +288,7 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Styling tetap sama */
+</style>
