@@ -297,85 +297,97 @@ class PenjualController extends Controller
      * Get dashboard statistics untuk penjual yang sedang login
      */
     public function dashboardStats(Request $request)
-    {
-        $penjual = $request->user();
+{
+    $penjual = $request->user();
 
-        // Hitung total produk
-        $totalProduk = $penjual->produks()->count();
+    // 1. Hitung Statistik Dasar
+    $totalProduk = $penjual->produks()->count();
+    
+    // Ambil semua ID produk milik penjual
+    $produkIds = $penjual->produks()->pluck('id');
 
-        // Hitung total penjualan (jika ada tabel orders/transaksi)
-        // Untuk sementara kita set 0, bisa dikembangkan nanti
-        $totalPenjualan = 0;
+    // Hitung Review
+    $totalUlasan = \App\Models\Review::whereIn('produk_id', $produkIds)->count();
+    
+    $ulasanBaru = \App\Models\Review::whereIn('produk_id', $produkIds)
+        ->where('created_at', '>=', now()->subDays(7))
+        ->count();
 
-        // Hitung pesanan baru (jika ada tabel orders)
-        // Untuk sementara kita set 0
-        $pesananBaru = 0;
+    // -- LOGIC AKTIVITAS TERBARU (GABUNGAN PRODUK & REVIEW) --
 
-        // Hitung total ulasan dari semua produk penjual
-        $produkIds = $penjual->produks()->pluck('id')->toArray();
-        $totalUlasan = \App\Models\Review::whereIn('produk_id', $produkIds)->count();
+    // A. Ambil 5 Produk Terbaru
+    $recentProducts = $penjual->produks()
+        ->latest()
+        ->take(5)
+        ->get();
 
-        // Hitung ulasan baru (7 hari terakhir)
-        $ulasanBaru = \App\Models\Review::whereIn('produk_id', $produkIds)
-            ->where('created_at', '>=', now()->subDays(7))
-            ->count();
+    // B. Ambil 5 Review Terbaru (Tanpa relasi 'user', pakai 'produk' saja)
+    $recentReviews = \App\Models\Review::whereIn('produk_id', $produkIds)
+        ->with('produk:id,namaProduk') // Load nama produk saja agar ringan
+        ->latest()
+        ->take(5)
+        ->get();
 
-        // Aktivitas terbaru
-        $aktivitasTerbaru = [];
+    // C. Gabungkan Collection dan Sort berdasarkan Waktu (created_at)
+    // Kita gabung dulu object aslinya agar sortingnya akurat berdasarkan timestamp
+    $mergedActivities = $recentProducts->concat($recentReviews)
+        ->sortByDesc('created_at')
+        ->take(5);
 
-        // Ambil produk terbaru
-        $produkTerbaru = $penjual->produks()->latest()->take(3)->get();
-        foreach ($produkTerbaru as $produk) {
-            $aktivitasTerbaru[] = [
-                'judul' => 'Produk Ditambahkan',
-                'deskripsi' => "Produk '{$produk->namaProduk}' berhasil ditambahkan",
-                'waktu' => $produk->created_at->diffForHumans(),
-                'type' => 'produk'
+    $sebaranLokasi = \App\Models\Review::whereIn('produk_id', $produkIds)
+    ->whereNotNull('provinsiPengunjung') // Hanya ambil yang ada provinsinya
+    ->where('provinsiPengunjung', '!=', '') // Hanya ambil yang tidak kosong string
+    ->select('provinsiPengunjung', \DB::raw('count(*) as total'))
+    ->groupBy('provinsiPengunjung')
+    ->pluck('total', 'provinsiPengunjung')
+    ->toArray();    
+
+    // D. Mapping ke Format JSON untuk Frontend
+    $aktivitasTerbaru = $mergedActivities->map(function ($item) {
+        
+        // Cek apakah item ini adalah instance dari model Review
+        if ($item instanceof \App\Models\Review) {
+            $namaPengunjung = $item->namaPengunjung ?? 'Pengunjung';
+            $namaProduk = $item->produk->namaProduk ?? 'Produk dihapus';
+
+            return [
+                'type' => 'review',
+                'judul' => $namaPengunjung, // Untuk Vue: aktivitas.judul
+                'deskripsi' => "Memberikan rating {$item->rating} ⭐ untuk {$namaProduk}", // Vue: aktivitas.deskripsi
+                'waktu' => $item->created_at->diffForHumans(), // Vue: aktivitas.waktu
+                'rating' => (float) $item->rating, // PENTING: Untuk display bintang
+                'provinsi' => $item->provinsiPengunjung // PENTING: Untuk fallback grafik lokasi
+            ];
+        } 
+        
+        // Jika bukan Review, berarti Produk
+        else {
+            return [
+                'type' => 'produk',
+                'judul' => 'Produk Baru',
+                'deskripsi' => "Anda menambahkan produk: {$item->namaProduk}",
+                'waktu' => $item->created_at->diffForHumans(),
+                'rating' => null,
+                'provinsi' => null
             ];
         }
+    })->values(); // Reset array keys agar jadi JSON array murni []
 
-        // Ambil ulasan terbaru
-        $reviewTerbaru = \App\Models\Review::whereIn('produk_id', $produkIds)
-            ->with(['produk', 'user'])
-            ->latest()
-            ->take(3)
-            ->get();
-
-        foreach ($reviewTerbaru as $review) {
-            $userName = $review->user ? $review->user->name : 'User';
-            $produkName = $review->produk ? $review->produk->namaProduk : 'Produk';
-            
-            $aktivitasTerbaru[] = [
-                'judul' => 'Ulasan Baru',
-                'deskripsi' => "{$userName} memberi ulasan {$review->rating} ⭐ di {$produkName}",
-                'waktu' => $review->created_at->diffForHumans(),
-                'type' => 'review'
-            ];
-        }
-
-        // Sort aktivitas berdasarkan waktu terbaru
-        usort($aktivitasTerbaru, function($a, $b) {
-            return strtotime($b['waktu']) - strtotime($a['waktu']);
-        });
-
-        // Ambil hanya 5 aktivitas terbaru
-        $aktivitasTerbaru = array_slice($aktivitasTerbaru, 0, 5);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'total_produk' => $totalProduk,
-                'total_penjualan' => $totalPenjualan,
-                'pesanan_baru' => $pesananBaru,
-                'total_ulasan' => $totalUlasan,
-                'ulasan_baru' => $ulasanBaru,
-                'aktivitas_terbaru' => $aktivitasTerbaru,
-                'penjual' => [
-                    'nama' => $penjual->namaPenjual,
-                    'toko' => $penjual->namaToko,
-                    'status' => $penjual->status
-                ]
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'total_produk' => $totalProduk,
+            'total_penjualan' => 0, // Placeholder
+            'total_ulasan' => $totalUlasan,
+            'ulasan_baru' => $ulasanBaru,
+            'sebaran_lokasi' => $sebaranLokasi,
+            'aktivitas_terbaru' => $aktivitasTerbaru,
+            // Tambahan info penjual jika perlu
+            'profile_summary' => [
+                'nama' => $penjual->namaPenjual,
+                'toko' => $penjual->namaToko
             ]
-        ]);
-    }
+        ]
+    ]);
+}
 }

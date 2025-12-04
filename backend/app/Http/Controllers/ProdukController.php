@@ -15,7 +15,8 @@ class ProdukController extends Controller
     public function index(Request $request)
     {
         // Inisialisasi query builder
-        $query = Produk::with(['penjual', 'kategori']);
+        $query = Produk::with(['penjual', 'kategori'])
+                   ->withAvg('reviews', 'rating');
 
         // 1. Logic untuk Penjual (hanya tampilkan produk mereka)
         if ($request->user() && method_exists($request->user(), 'produks')) {

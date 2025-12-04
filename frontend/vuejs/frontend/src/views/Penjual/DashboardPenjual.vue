@@ -30,6 +30,19 @@ const produkStore = useProdukStore();
 const penjualStore = usePenjualStore();
 const reviewStore = useReviewStore();
 
+const getRating = (product) => {
+  const val = product.rating || product.reviews_avg_rating || 0;
+  return parseFloat(val) || 0;
+};
+
+const getKategoriName = (kategori) => {
+  if (!kategori) return '-';
+  if (typeof kategori === 'object') {
+    return kategori.namaKategori || kategori.nama || kategori.name || '-';
+  }
+  return String(kategori);
+};
+
 // ... (Kode Computed Properties Lama Tetap Sama) ...
 const namaPenjual = computed(() => {
   if (penjualStore.profile?.namaPenjual) {
@@ -38,25 +51,13 @@ const namaPenjual = computed(() => {
   return localStorage.getItem('nama_penjual') || 'Penjual';
 });
 
-const totalProduk = computed(() => {
-  return penjualStore.dashboardStats?.total_produk || produkStore.produkList.length || 0;
-});
+const stats = computed(() => penjualStore.dashboardStats || {});
 
-const totalPenjualan = computed(() => {
-  return penjualStore.dashboardStats?.total_penjualan || 0;
-});
-
-const totalUlasan = computed(() => {
-  return penjualStore.dashboardStats?.total_ulasan || 0;
-});
-
-const ulasanBaru = computed(() => {
-  return penjualStore.dashboardStats?.ulasan_baru || 0;
-});
-
-const aktivitasTerbaru = computed(() => {
-  return penjualStore.dashboardStats?.aktivitas_terbaru || [];
-});
+const totalProduk = computed(() => stats.value.total_produk || produkStore.produkList.length || 0);
+const totalPenjualan = computed(() => stats.value.total_penjualan || 0);
+const totalUlasan = computed(() => stats.value.total_ulasan || 0);
+const ulasanBaru = computed(() => stats.value.ulasan_baru || 0);
+const aktivitasTerbaru = computed(() => stats.value.aktivitas_terbaru || []);
 
 const isLoading = computed(() => {
   return penjualStore.isLoading || produkStore.isLoading || reviewStore.isLoading;
@@ -97,18 +98,20 @@ const ratingChartData = computed(() => {
   };
 });
 
+// Di dalam DashboardPenjual.vue
+
 const locationChartData = computed(() => {
-  const reviews = reviewStore.reviews || [];
-  const locationCounts = {};
-  reviews.forEach(review => {
-    const location = review.user?.provinsi || review.provinsiPengunjung || 'Tidak Diketahui';
-    locationCounts[location] = (locationCounts[location] || 0) + 1;
-  });
+  // Data dari backend formatnya: { "Jawa Barat": 10, "Bali": 5 }
+  const dataLokasi = stats.value.sebaran_lokasi || {};
+  
+  const labels = Object.keys(dataLokasi);
+  const data = Object.values(dataLokasi);
+
   return {
-    labels: Object.keys(locationCounts),
+    labels: labels.length ? labels : ['Belum ada data'],
     datasets: [{
-      backgroundColor: ['#4ade80', '#60a5fa', '#f87171', '#a78bfa', '#fbbf24'],
-      data: Object.values(locationCounts)
+      backgroundColor: ['#4ade80', '#60a5fa', '#f87171', '#a78bfa', '#fbbf24', '#cbd5e1'],
+      data: data.length ? data : [1] // Dummy 1 agar chart muncul (abu-abu) kalau kosong
     }]
   };
 });
@@ -151,9 +154,9 @@ const generatePDF = (type) => {
     body = products.map((p, index) => [
       index + 1,
       p.namaProduk,
-      p.kategori,
+      getKategoriName(p.kategori),
       formatRupiah(p.harga),
-      p.rating ? p.rating.toFixed(1) : '0',
+      getRating(p).toFixed(1),
       p.stok
     ]);
 
@@ -168,10 +171,10 @@ const generatePDF = (type) => {
     body = products.map((p, index) => [
       index + 1,
       p.namaProduk,
-      p.kategori,
+      getKategoriName(p.kategori),
       formatRupiah(p.harga),
       p.stok,
-      p.rating ? p.rating.toFixed(1) : '0'
+      getRating(p).toFixed(1)
     ]);
 
   } else if (type === 'urgent_stock') {
@@ -188,7 +191,7 @@ const generatePDF = (type) => {
     body = urgentProducts.map((p, index) => [
       index + 1,
       p.namaProduk,
-      p.kategori,
+      getKategoriName(p.kategori),
       formatRupiah(p.harga),
       p.stok
     ]);
