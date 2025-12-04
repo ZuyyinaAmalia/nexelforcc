@@ -43,6 +43,14 @@ const isActive = (path: string) => route.path === path
           <span class="mr-3 text-lg">✅</span> 
           <span class="font-medium">Verifikasi Penjual</span>
         </router-link>
+
+        <router-link to="/admin/kategori" 
+            class="flex items-center px-4 py-3 transition-all duration-200 rounded-xl group"
+            :class="isActive('/admin/kategori') ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'text-gray-500 hover:bg-purple-50 hover:text-purple-600'"
+          >
+            <span class="mr-3 text-lg">📦</span> 
+            <span class="font-medium">Kelola Kategori</span>
+        </router-link>
       </nav>
 
       <div class="p-6 border-t border-gray-100">

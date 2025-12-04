@@ -11,6 +11,7 @@ use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\AlamatController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,9 +72,11 @@ Route::prefix('admin')->group(function () {
         Route::post('/verifikasi-penjual/{id}', [AdminPenjualController::class, 'verifikasi']);
         
         // ----- KELOLA KATEGORI (Admin Only) -----
-        Route::post('/kategoris', [KategoriController::class, 'store']);
-        Route::put('/kategoris/{kategori}', [KategoriController::class, 'update']);
-        Route::delete('/kategoris/{kategori}', [KategoriController::class, 'destroy']);
+        Route::get('/kategori', [KategoriController::class, 'index']);
+        Route::get('/kategori/{kategori}', [KategoriController::class, 'show']);
+        Route::post('/kategori', [KategoriController::class, 'store']);
+        Route::put('/kategori/{kategori}', [KategoriController::class, 'update']);
+        Route::delete('/kategori/{kategori}', [KategoriController::class, 'destroy']);
         
         // ----- KELOLA REVIEW (Admin bisa moderasi review) -----
         Route::put('/reviews/{id}', [ReviewController::class, 'update']);
@@ -81,6 +84,14 @@ Route::prefix('admin')->group(function () {
         
         // ----- KELOLA SEMUA PENJUAL (Admin CRUD) -----
         Route::apiResource('penjuals', PenjualController::class);
+        // Dashboard Statistics
+        Route::get('/dashboard/stats', [DashboardController::class, 'getStatistics']);
+        Route::get('/dashboard/top-products', [DashboardController::class, 'getTopProducts']);
+
+        // Route untuk Download PDF
+        Route::get('/reports/status-penjual', [DashboardController::class, 'downloadReportStatus']);
+        Route::get('/reports/penjual-provinsi', [DashboardController::class, 'downloadReportProvinsi']);
+        Route::get('/reports/produk-rating', [DashboardController::class, 'downloadReportProdukRating']);
     });
 });
 
