@@ -17,7 +17,6 @@
         <h2>Laporan Daftar Produk & Rating</h2>
         <p>Tanggal Cetak: {{ $date }}</p>
     </div>
-
     <table>
         <thead>
             <tr>
@@ -40,7 +39,11 @@
                 <td>{{ $item->penjual->namaToko ?? '-' }}</td>
                 <td>{{ $item->penjual->alamat->provinsi ?? '-' }}</td>
                 <td class="center">
-                    {{ number_format($item->reviews_avg_rating, 1) }} ⭐
+                    @if($item->reviews_avg_rating)
+                        {{ number_format($item->reviews_avg_rating, 1) }}
+                    @else
+                        <span style="color: #999;">Belum ada rating</span>
+                    @endif
                 </td>
             </tr>
             @endforeach

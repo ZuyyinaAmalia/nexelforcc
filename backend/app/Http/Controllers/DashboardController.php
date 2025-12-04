@@ -178,14 +178,17 @@ class DashboardController extends Controller
         // Ambil data produk dengan relasi yang dibutuhkan
         $products = Produk::with(['penjual.alamat', 'kategori'])
             ->withAvg('reviews', 'rating') // Hitung rata-rata rating
-            ->orderByDesc('reviews_avg_rating') // Urutkan dari rating tertinggi
-            ->get();
-
+            ->get()
+            ->sortByDesc(function ($product) {
+                // Jika tidak ada rating (NULL), beri nilai -1 agar turun ke bawah
+                return $product->reviews_avg_rating ?? -1;
+            });
+        
         $pdf = Pdf::loadView('reports.produk_rating', [
             'data' => $products,
             'date' => date('d-m-Y H:i')
         ]);
-
+        
         return $pdf->download('laporan_produk_rating.pdf');
     }
 }

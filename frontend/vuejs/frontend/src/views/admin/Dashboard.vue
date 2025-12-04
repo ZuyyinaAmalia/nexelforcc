@@ -20,7 +20,7 @@ interface Stats {
 
 import { 
   UsersIcon, 
-  ChatBubbleLeftRightIcon, // atau StarIcon
+  ChatBubbleLeftRightIcon,
   ChartBarIcon, 
   CubeIcon,
   ArrowDownTrayIcon
@@ -29,8 +29,10 @@ import {
 const stats = ref<Stats | null>(null)
 const loading = ref(true)
 
-// --- TAMBAHAN: State untuk loading download ---
-const downloading = ref(false)
+// State terpisah untuk setiap tombol download - PASTIKAN EJA BENAR
+const downloadingStatus = ref(false)
+const downloadingProvinsi = ref(false)
+const downloadingProduk = ref(false)
 
 const fetchDashboardStats = async () => {
   loading.value = true
@@ -40,26 +42,30 @@ const fetchDashboardStats = async () => {
       headers: { Authorization: `Bearer ${token}` }
     })
     stats.value = response.data
-    console.log('Dashboard data:', response.data) // Debug
+    console.log('Dashboard data:', response.data)
   } catch (error: any) {
     console.error('Error fetching dashboard stats:', error)
-    console.error('Error response:', error.response?.data) // Debug detail error
+    console.error('Error response:', error.response?.data)
     alert('Gagal memuat data dashboard: ' + (error.response?.data?.message || error.message))
   } finally {
     loading.value = false
   }
 }
 
-// --- TAMBAHAN: Fungsi Download PDF ---
-// Update tipe parameter agar menerima 'produk-rating'
 const downloadReport = async (type: 'status' | 'provinsi' | 'produk-rating') => {
-  if (downloading.value) return
-  downloading.value = true
+  // Cek state yang sesuai
+  if (type === 'status' && downloadingStatus.value) return
+  if (type === 'provinsi' && downloadingProvinsi.value) return
+  if (type === 'produk-rating' && downloadingProduk.value) return
+
+  // Set loading state yang sesuai
+  if (type === 'status') downloadingStatus.value = true
+  else if (type === 'provinsi') downloadingProvinsi.value = true
+  else if (type === 'produk-rating') downloadingProduk.value = true
 
   try {
     const token = localStorage.getItem('token')
     
-    // Tentukan URL berdasarkan tipe
     let url = ''
     let filename = ''
 
@@ -70,7 +76,6 @@ const downloadReport = async (type: 'status' | 'provinsi' | 'produk-rating') => 
         url = 'http://127.0.0.1:8000/api/admin/reports/penjual-provinsi'
         filename = 'Laporan_Penjual_Provinsi.pdf'
     } else if (type === 'produk-rating') {
-        // INI TAMBAHAN BARU
         url = 'http://127.0.0.1:8000/api/admin/reports/produk-rating'
         filename = 'Laporan_Produk_Rating.pdf'
     }
@@ -92,7 +97,10 @@ const downloadReport = async (type: 'status' | 'provinsi' | 'produk-rating') => 
     console.error('Download error:', error)
     alert('Gagal mengunduh file PDF')
   } finally {
-    downloading.value = false
+    // Reset loading state yang sesuai
+    if (type === 'status') downloadingStatus.value = false
+    else if (type === 'provinsi') downloadingProvinsi.value = false
+    else if (type === 'produk-rating') downloadingProduk.value = false
   }
 }
 
@@ -153,29 +161,28 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500 flex justify-between items-center transition-transform hover:-translate-y-1">
-        <div class="flex-1 pr-4"> <div class="flex justify-between items-center w-full mb-1">
-                <p class="text-gray-500 text-sm font-medium">Total Produk</p>
-            </div>
-          
-          <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ totalProduk }}</h3>
-          
-          <div class="flex items-center justify-between mt-2">
-            <p class="text-gray-400 text-xs">Semua kategori</p>
-             <button 
-                @click="downloadReport('produk-rating')"
-                :disabled="downloading"
-                class="text-[10px] bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                title="Unduh Laporan"
-              >
-                <span v-if="downloading">⏳</span>
-                <span v-else>⬇️ PDF</span>
-            </button>
+      <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500 transition-transform hover:-translate-y-1">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex-1">
+            <p class="text-gray-500 text-sm font-medium mb-1">Total Produk</p>
+            <h3 class="text-3xl font-bold text-gray-800">{{ totalProduk }}</h3>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+            <CubeIcon class="w-6 h-6 text-blue-600" />
           </div>
         </div>
         
-        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-          <CubeIcon class="w-6 h-6 text-blue-600" />
+        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+          <button 
+            @click="downloadReport('produk-rating')"
+            :disabled="downloadingProduk"
+            class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Unduh Laporan PDF"
+          >
+            <ArrowDownTrayIcon class="w-3.5 h-3.5" />
+            <span v-if="downloadingProduk">Mengunduh...</span>
+            <span v-else>Unduh PDF</span>
+          </button>
         </div>
       </div>
     </div>
@@ -205,12 +212,14 @@ onMounted(() => {
           <h3 class="text-lg font-bold text-gray-800">Status Penjual</h3>
           
           <button 
-            @click="downloadReport('status')" 
-            :disabled="downloading"
-            class="text-xs font-medium bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors flex items-center gap-1"
+            @click="downloadReport('status')"
+            :disabled="downloadingStatus"
+            class="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Unduh Laporan PDF"
           >
-            <span v-if="downloading">⏳...</span>
-            <span v-else>⬇️ PDF</span>
+            <ArrowDownTrayIcon class="w-3.5 h-3.5" />
+            <span v-if="downloadingStatus">Mengunduh...</span>
+            <span v-else>Unduh PDF</span>
           </button>
         </div>
 
@@ -232,13 +241,15 @@ onMounted(() => {
         <h3 class="text-lg font-bold text-gray-800">Toko per Provinsi</h3>
         
         <button 
-          @click="downloadReport('provinsi')" 
-          :disabled="downloading"
-          class="text-xs font-medium bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors flex items-center gap-1"
-        >
-          <span v-if="downloading">⏳...</span>
-          <span v-else>⬇️ PDF</span>
-        </button>
+            @click="downloadReport('provinsi')"
+            :disabled="downloadingProvinsi"
+            class="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Unduh Laporan PDF"
+          >
+            <ArrowDownTrayIcon class="w-3.5 h-3.5" />
+            <span v-if="downloadingProvinsi">Mengunduh...</span>
+            <span v-else>Unduh PDF</span>
+          </button>
       </div>
 
       <table class="w-full">
