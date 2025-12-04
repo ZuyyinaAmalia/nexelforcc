@@ -1,10 +1,10 @@
 <?php
-// App\Http\Resources\PenjualResource.php
 
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Helpers\StorageHelper;
 
 class PenjualResource extends JsonResource
 {
@@ -15,9 +15,15 @@ class PenjualResource extends JsonResource
             'nama_toko' => $this->namaToko,
             'nama_penjual' => $this->namaPenjual,
             'deskripsi_toko' => $this->deskripsiToko,
-            // Tambahkan data alamat jika Anda punya kolom alamat di Model Penjual
-            'lokasi' => $this->city ?? 'Semarang', // Contoh jika ada kolom city
-            
+            'email' => $this->email,
+            'no_hp' => $this->noHp,
+            'foto' => StorageHelper::getPublicUrl($this->foto),
+            'foto_ktp' => StorageHelper::getPublicUrl($this->fotoKtp),
+            'status' => $this->status,
+            // Mengambil kota dari relasi alamat
+            'lokasi' => $this->whenLoaded('alamat', function() {
+                return $this->alamat->kota ?? 'Semarang';
+            }, 'Semarang'),
         ];
     }
 }

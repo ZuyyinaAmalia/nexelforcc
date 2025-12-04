@@ -21,6 +21,7 @@
     "@heroicons/vue": "^2.2.0",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
+    "chartjs": "^0.3.24",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "pinia": "^3.0.4",

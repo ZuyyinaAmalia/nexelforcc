@@ -7,6 +7,7 @@ use App\Models\Alamat;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -112,16 +113,23 @@ class PenjualController extends Controller
             'provinsi' => 'required|string',
         ]);
 
-        // 2. Handle Upload File
-        // Menyimpan file ke folder 'storage/app/public/penjuals'
+        // 2. Handle Upload File to Supabase Storage
         $fotoPath = null;
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('penjuals/foto_profil', 'public');
+            $file = $request->file('foto');
+            $filename = time() . '_foto_' . $file->getClientOriginalName();
+            $path = 'penjuals/foto_profil/' . $filename;
+            Storage::disk('supabase')->put($path, file_get_contents($file), 'public');
+            $fotoPath = $path;
         }
 
         $ktpPath = null;
         if ($request->hasFile('fotoKtp')) {
-            $ktpPath = $request->file('fotoKtp')->store('penjuals/ktp', 'public');
+            $file = $request->file('fotoKtp');
+            $filename = time() . '_ktp_' . $file->getClientOriginalName();
+            $path = 'penjuals/ktp/' . $filename;
+            Storage::disk('supabase')->put($path, file_get_contents($file), 'public');
+            $ktpPath = $path;
         }
 
         // 3. Buat Data Penjual
@@ -278,10 +286,13 @@ class PenjualController extends Controller
             'foto' => ['nullable', 'image', 'max:2048'],
         ]);
 
-        // Handle foto upload if exists
+        // Handle foto upload to Supabase if exists
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('penjuals/foto_profil', 'public');
-            $data['foto'] = $fotoPath;
+            $file = $request->file('foto');
+            $filename = time() . '_foto_' . $file->getClientOriginalName();
+            $path = 'penjuals/foto_profil/' . $filename;
+            Storage::disk('supabase')->put($path, file_get_contents($file), 'public');
+            $data['foto'] = $path;
         }
 
         $penjual->update($data);

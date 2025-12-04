@@ -22,7 +22,7 @@ const router = createRouter({
     // --- ROUTE PUBLIC ---
     {
       path: '/',
-      redirect: '/login'
+      redirect: '/home'
     },
     {
       path: '/login',

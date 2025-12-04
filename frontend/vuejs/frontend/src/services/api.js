@@ -3,6 +3,7 @@ import axios from 'axios'
 // ===== AXIOS INSTANCE =====
 export const api = axios.create({
   baseURL: 'http://localhost:8000/api',
+  timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
@@ -128,13 +129,40 @@ export const deletePenjualAlamat = (id) => api.delete(`/penjual/alamat/${id}`)
 
 // Format error message dari response
 export const getErrorMessage = (error) => {
+  // Network error (server tidak bisa dijangkau)
+  if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+    return '❌ Tidak dapat terhubung ke server. Pastikan Laravel server berjalan di http://127.0.0.1:8000'
+  }
+  
+  // Connection refused
+  if (error.code === 'ECONNREFUSED') {
+    return '❌ Server tidak merespons. Jalankan: php artisan serve'
+  }
+  
+  // Timeout
+  if (error.code === 'ECONNABORTED') {
+    return '⏱️ Koneksi timeout. Coba lagi.'
+  }
+  
+  // Server response errors
   if (error.response?.data?.message) {
     return error.response.data.message
   }
+  
   if (error.response?.data?.errors) {
     const errors = error.response.data.errors
     return Object.values(errors).flat().join(', ')
   }
+  
+  // HTTP status errors
+  if (error.response?.status === 404) {
+    return '404 - Endpoint tidak ditemukan'
+  }
+  
+  if (error.response?.status === 500) {
+    return '500 - Server error. Cek log Laravel.'
+  }
+  
   return error.message || 'Terjadi kesalahan pada server'
 }
 
