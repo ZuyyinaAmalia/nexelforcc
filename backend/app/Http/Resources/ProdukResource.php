@@ -19,6 +19,7 @@ class ProdukResource extends JsonResource
             'fotoProduk' => $this->fotoProduk, 
             
             'created_at' => $this->created_at, 
+
             
             'penjual' => new PenjualResource($this->whenLoaded('penjual')), 
             'kategori' => new KategoriResource($this->whenLoaded('kategori')),
