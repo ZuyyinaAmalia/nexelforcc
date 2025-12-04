@@ -1,168 +1,153 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import axios from 'axios';
+import { ref, onMounted, computed, watch } from "vue";
+import { useProdukStore, useKategoriStore } from '@/stores';
 import heroImage from '@/assets/hero.png';
-// URL API untuk daftar semua produk
-const API_URL = 'http://127.0.0.1:8000/api/public/produks'; 
-const API_URL_KATEGORI = 'http://127.0.0.1:8000/api/public/kategoris';
-const LARAVEL_BASE_URL = 'http://127.0.0.1:8000'; // Tambahkan ini
-const API_URL_SEARCH = `http://127.0.0.1:8000/api/public/produks/search`;
+
+// --- STORES ---
+const produkStore = useProdukStore();
+const kategoriStore = useKategoriStore();
 
 // --- STATE DATA ---
-
-// State untuk menyimpan daftar produk dari API
 const products = ref<any[]>([]); 
-// State untuk menunjukkan proses loading
-const isLoading = ref(true); 
-// State untuk menyimpan pesan error
-const error = ref<string | null>(null); 
-// State baru: Kategori yang sedang dipilih (null untuk "Semua Produk")
 const activeCategory = ref<string | null>(null);
-// Kategori sekarang KOSONG, akan diisi dari API
 const categories = ref<any[]>([]);
-// --- STATE BARU UNTUK SEARCH ---
-const searchQuery = ref(''); // Query yang diketik pengguna
-const searchTimeout = ref<any>(null); // Untuk Debouncing
-const isSearching = ref(false); // Flag untuk membedakan proses pencarian
-// -------------------------------
+const searchQuery = ref(''); 
+const searchTimeout = ref<any>(null); 
+
+// Computed untuk loading state dan error dari stores
+const isLoading = computed(() => produkStore.isLoading || kategoriStore.isLoading);
+const error = computed(() => produkStore.error || kategoriStore.error);
 
 
-// --- FUNGSI BARU: Mengambil Kategori dari Laravel ---
+// Icon mapping untuk kategori
+const getIcon = (categoryName: string): string => {
+    const icons: Record<string, string> = {
+        'Fashion': '👕',
+        'Elektronik': '📱',
+        'Makanan & Minuman': '🍔',
+        'Kecantikan': '💅',
+        'Rumah Tangga': '🛋️',
+        'Olahraga': '⚽',
+        'Otomotif': '🚗',
+        'Hobi & Koleksi': '🎨',
+        'Laptop': '💻',
+        'Charger': '🔌',
+        'Aksesoris': '🎧',
+    };
+    return icons[categoryName] || '🏷️'; 
+};
+
+// Fetch categories dari store
 const fetchCategories = async () => {
     try {
-        const response = await axios.get(API_URL_KATEGORI);
+        const apiCategories = await kategoriStore.fetchPublicKategoriList();
         
-        const apiCategories = response.data.data;
-
-        // Map untuk mencocokkan nama kategori dari DB dengan ikon
-        const getIcon = (categoryName: string) => {
-            const icons: { [key: string]: string } = {
-                'Fashion': '👕',
-                'Elektronik': '📱',
-                'Makanan & Minuman': '🍔',
-                'Kecantikan': '💅',
-                'Rumah Tangga': '🛋️',
-                'Olahraga': '⚽',
-                'Otomotif': '🚗',
-                'Hobi & Koleksi': '🎨',
-                'ppphehe': '❓', // Sediakan ikon untuk kategori yang ada di DB Anda
-            };
-            return icons[categoryName] || '🏷️'; 
-        };
-
-        categories.value = apiCategories.map((k: any) => ({
-            // Mengambil namaKategori dari Laravel Resource
-            name: k.namaKategori, 
-            icon: getIcon(k.namaKategori)
-        }));
-
+        if (apiCategories && apiCategories.length > 0) {
+            categories.value = apiCategories.map((k: any) => ({
+                name: k.nama_kategori || k.namaKategori, 
+                icon: getIcon(k.nama_kategori || k.namaKategori)
+            }));
+            console.log('✅ Categories loaded:', categories.value.length);
+        }
     } catch (err: any) {
-        console.error("Gagal memuat kategori:", err);
+        console.error("❌ Error loading categories:", err);
     }
 };
 
 
-// Fungsi untuk mengambil daftar produk dari Laravel
+// Fetch products dari store dengan filter
 const fetchProducts = async () => {
-    isLoading.value = true;
-    error.value = null;
-
-    // Tentukan URL dan parameter
-    let url = API_URL;
-    let params: any = {};
-    
-    // 1. Jika ada query pencarian, gunakan endpoint search
-    if (searchQuery.value.length > 0) {
-        url = API_URL_SEARCH;
-        params.q = searchQuery.value;
-        // NOTE: Dalam mode pencarian, kita biasanya tidak memfilter kategori, 
-        // tapi jika ingin digabungkan:
-        // if (activeCategory.value) { params.kategori = activeCategory.value; }
-    } 
-    // 2. Jika tidak ada query pencarian, gunakan endpoint index (dengan filter kategori)
-    else if (activeCategory.value) {
-        params.kategori = activeCategory.value;
-    }
-
     try {
-        const response = await axios.get(url, { params });
+        console.log('🔍 Fetching products...');
         
-        const apiProducts = response.data.data || [];
+        // Fetch semua produk dari store
+        const apiProducts = await produkStore.fetchPublicProdukList();
+        
+        if (!apiProducts || apiProducts.length === 0) {
+            console.warn('⚠️ No products returned from API');
+            products.value = [];
+            return;
+        }
 
-        // Lakukan mapping dan simpan ke state products
-        products.value = apiProducts.map((p: any) => ({
+        console.log('📦 Total products from API:', apiProducts.length);
+
+        // Apply filters
+        let filteredProducts = [...apiProducts];
+
+        // Filter by category
+        if (activeCategory.value) {
+            filteredProducts = filteredProducts.filter((p: any) => {
+                const kategoriName = p.kategori?.nama_kategori || p.kategori?.namaKategori;
+                return kategoriName === activeCategory.value;
+            });
+            console.log(`🏷️ After category filter "${activeCategory.value}":`, filteredProducts.length);
+        }
+
+        // Filter by search query
+        if (searchQuery.value.trim().length > 0) {
+            const query = searchQuery.value.toLowerCase().trim();
+            filteredProducts = filteredProducts.filter((p: any) => {
+                const name = (p.namaProduk || '').toLowerCase();
+                const desc = (p.deskripsi || '').toLowerCase();
+                return name.includes(query) || desc.includes(query);
+            });
+            console.log(`🔎 After search filter "${searchQuery.value}":`, filteredProducts.length);
+        }
+
+        // Map to display format
+        products.value = filteredProducts.map((p: any) => ({
             id: p.id,
             name: p.namaProduk, 
             price: p.harga, 
-            rating: 4.8, 
-            totalReviews: 126, 
-            nama_toko: p.penjual 
-                     ? (p.penjual.nama_toko || p.penjual.namaToko)
-                    : 'N/A', 
-            image: p.fotoProduk
-                ? p.fotoProduk
-                : 'https://source.unsplash.com/random/400x400/?laptop,charger', 
+            rating: p.rating || 4.5, 
+            totalReviews: p.totalReviews || 0, 
+            nama_toko: p.penjual?.nama_toko || 'Toko Tidak Diketahui', 
+            image: p.fotoProduk || 'https://via.placeholder.com/400x400?text=No+Image', 
         }));
 
+        console.log('✅ Products ready for display:', products.value.length);
+
     } catch (err: any) {
-        console.error("Gagal mengambil data produk/pencarian:", err);
-        error.value = "Gagal memuat data. Cek koneksi server Laravel (port 8000).";
-    } finally {
-        isLoading.value = false;
-        isSearching.value = false;
+        console.error("❌ Error fetching products:", err);
+        products.value = [];
     }
 };
 
-
-// --- FUNGSI BARU UNTUK LIVE SEARCH DENGAN DEBOUNCE ---
+// Live search dengan debounce
 const performSearch = () => {
-    // 1. Hapus timeout sebelumnya
     clearTimeout(searchTimeout.value);
-
-    // 2. Atur isSearching menjadi true (untuk UI loading)
-    isSearching.value = true;
     
-    // Jika query kosong, segera kembalikan ke daftar reguler
-    if (searchQuery.value.length === 0) {
-        isSearching.value = false; // Non-aktifkan flag search
-        fetchProducts(); // Muat ulang produk reguler (atau kategori aktif)
-        return;
-    }
-
-    // 3. Atur timeout baru (Debounce: 300ms)
     searchTimeout.value = setTimeout(() => {
-        // Panggil fetchProducts yang sekarang bisa menangani search query
         fetchProducts();
     }, 300);
 };
-// ----------------------------------------------------
 
-// Fungsi filter: Mengatur kategori aktif dan memuat ulang produk
+// Filter by category
 const filterByCategory = (categoryName: string | null) => {
-    // Kosongkan query pencarian saat user mengklik kategori
     searchQuery.value = '';
     activeCategory.value = categoryName;
     fetchProducts();
-}
+};
 
-
-// Panggil kedua fungsi saat komponen selesai dimuat
-onMounted(() => {
-    fetchProducts();
-    fetchCategories(); 
-});
-
-// Fungsi helper untuk format harga
-const formatPrice = (price: number) => {
-    // Pastikan harga adalah angka
+// Helper: Format harga ke Rupiah
+const formatPrice = (price: number): string => {
     const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
     if (isNaN(numericPrice)) return 'Rp 0';
     return `Rp ${numericPrice.toLocaleString('id-ID')}`;
 };
+
+// Lifecycle: Load data saat component mounted
+onMounted(async () => {
+    console.log('🚀 HomeView mounted');
+    await Promise.all([
+        fetchProducts(),
+        fetchCategories()
+    ]);
+});
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 font-sans">
+    <div class="min-h-screen bg-gray-100 font-sans">
 
         <header class="bg-white shadow-md sticky top-0 z-30">
             <div class="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
@@ -181,12 +166,12 @@ const formatPrice = (price: number) => {
                 </div>
 
                 <div class="flex items-center gap-3 ml-4">
-                    <button class="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition">
+                    <router-link to="/login" class="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition">
                         Masuk
-                    </button>
-                    <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                    </router-link>
+                    <router-link to="/register" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
                         Daftar
-                    </button>
+                    </router-link>
                 </div>
             </div>
         </header>
@@ -238,14 +223,25 @@ const formatPrice = (price: number) => {
                     </span>
                 </h3>
 
-                <div v-if="isLoading || isSearching" class="text-center py-10 text-gray-500">
-                    <p>{{ searchQuery.length > 0 ? 'Mencari produk...' : 'Mengambil data produk...' }}</p>
+                <div v-if="isLoading" class="text-center py-10 text-gray-500">
+                    <p>{{ searchQuery.length > 0 ? 'Mencari produk...' : 'Memuat data produk...' }}</p>
                     <svg class="animate-spin h-5 w-5 mx-auto mt-4 text-purple-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
 
-                <div v-else-if="error" class="text-center py-10 text-red-500 border border-red-200 p-4 rounded-lg">
-                    <p>{{ error }}</p>
-                    <p class="text-sm text-red-400 mt-1">Pastikan server Laravel berjalan di **http://127.0.0.1:8000** dan routing `/api/produks` sudah benar.</p>
+                <div v-else-if="error" class="text-center py-10 border border-red-200 bg-red-50 p-6 rounded-lg">
+                    <div class="text-red-600 mb-3">
+                        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-red-700 font-semibold mb-2">{{ error }}</p>
+                    <button 
+                        @click="fetchProducts()" 
+                        class="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                    >
+                        🔄 Coba Lagi
+                    </button>
+                    <p class="text-xs text-red-500 mt-3">Pastikan Laravel server berjalan di http://127.0.0.1:8000</p>
                 </div>
 
                 <div v-else-if="products.length === 0" class="text-center py-10 text-gray-500 border border-dashed p-8 rounded-lg">
@@ -277,14 +273,8 @@ const formatPrice = (price: number) => {
                                 <span>{{ product.nama_toko }}</span>
                             </div>
                         </div>
-
-
-                        
                     </router-link>
                 </div>
-
-
-
             </div>
         </main>
         

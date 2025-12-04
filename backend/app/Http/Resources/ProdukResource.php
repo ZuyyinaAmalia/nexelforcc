@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Helpers\StorageHelper;
 
 class ProdukResource extends JsonResource
 {
@@ -16,7 +17,7 @@ class ProdukResource extends JsonResource
             'harga' => (int) $this->harga, 
             'stok' => (int) $this->stok,
             'kondisi' => $this->kondisi, 
-            'fotoProduk' => $this->fotoProduk, 
+            'fotoProduk' => StorageHelper::getPublicUrl($this->fotoProduk), 
             
             'created_at' => $this->created_at, 
 

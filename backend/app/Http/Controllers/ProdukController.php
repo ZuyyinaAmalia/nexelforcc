@@ -77,7 +77,9 @@ class ProdukController extends Controller
     public function show(Produk $produk)
     {
         $produk->load(['penjual', 'kategori', 'reviews']);
-        return response()->json($produk);
+        $produk->loadAvg('reviews', 'rating');
+        
+        return response()->json(new ProdukResource($produk));
     }
 
     /**

@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 // ===== IMPORT CONTROLLERS =====
 use App\Http\Controllers\AdminController;
@@ -130,12 +132,38 @@ Route::prefix('penjual')->group(function () {
                     'gambar' => 'required|image|mimes:jpeg,png,jpg|max:2048'
                 ]);
                 
-                $path = $request->file('gambar')->store('images/produks', 'public');
+                $file = $request->file('gambar');
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $path = 'produks/' . $filename;
+                
+                // Upload ke Supabase Storage menggunakan HTTP API
+                $projectId = env('SUPABASE_PROJECT_ID');
+                $serviceRoleKey = env('SUPABASE_SECRET');
+                $bucket = env('SUPABASE_BUCKET');
+                
+                $uploadUrl = "https://{$projectId}.supabase.co/storage/v1/object/{$bucket}/{$path}";
+                
+                $response = Http::withHeaders([
+                    'Authorization' => "Bearer {$serviceRoleKey}",
+                    'Content-Type' => $file->getMimeType(),
+                ])->withBody(file_get_contents($file), $file->getMimeType())
+                  ->post($uploadUrl);
+                
+                if (!$response->successful()) {
+                    return response()->json([
+                        'message' => 'Gagal upload gambar',
+                        'error' => $response->body(),
+                        'status' => $response->status()
+                    ], 500);
+                }
+                
+                // Generate public URL directly (bypass helper untuk upload baru)
+                $url = "https://{$projectId}.supabase.co/storage/v1/object/public/{$bucket}/{$path}";
                 
                 return response()->json([
                     'message' => 'Gambar berhasil diupload',
                     'path' => $path,
-                    'url' => asset('storage/' . $path)
+                    'url' => $url
                 ]);
             });
         });

@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import axios from 'axios';
 import { useRoute } from 'vue-router';
+import { useProdukStore, useReviewStore } from '@/stores';
 
 // --- INIT & CONFIG ---
 const route = useRoute();
-const productId = useRoute().params.id; 
-const API_URL = `http://127.0.0.1:8000/api/public/produks/${productId}`; 
-const LARAVEL_BASE_URL = 'http://127.0.0.1:8000';
-const REVIEW_API_URL = `${LARAVEL_BASE_URL}/api/public/reviews`;
+const productId = String(useRoute().params.id); 
+
+// --- STORES ---
+const produkStore = useProdukStore();
+const reviewStore = useReviewStore();
 
 // --- STATE DATA ---
 const product = ref<any>(null);
-const isLoading = ref(true); 
+const isLoading = ref(false); 
 const error = ref<string | null>(null); 
 
 // Data dummy ulasan - GANTI INI menjadi array kosong agar data diambil dari API
@@ -75,8 +76,12 @@ const fetchProductDetail = async () => {
     isLoading.value = true;
     error.value = null;
     try {
-        const response = await axios.get(API_URL);
-        const apiData = response.data; 
+        // Fetch product detail from store using public API
+        const apiData = await produkStore.fetchPublicProdukById(productId);
+        
+        if (!apiData) {
+            throw new Error('Produk tidak ditemukan');
+        } 
 
         // ⭐ PEMBENAHAN: Definisikan array ulasan yang sudah dipetakan terlebih dahulu.
         // Ini memastikan reviews.value terisi sebelum product.value diatur.
@@ -106,37 +111,29 @@ const fetchProductDetail = async () => {
             stok: apiData.stok,
             
             seller: {
-                name: apiData.penjual ? apiData.penjual.namaToko : 'Penjual Tidak Dikenal',
-                city: apiData.penjual ? apiData.penjual.namaPenjual : 'N/A', 
+                name: apiData.penjual?.nama_toko || apiData.penjual?.namaToko || 'Penjual Tidak Dikenal',
+                city: apiData.penjual?.lokasi || 'Semarang', 
                 province: 'Online Store',
             },
             
-            category: [apiData.kategori ? apiData.kategori.namaKategori : 'Tidak Berkategori', 'Detail'],
+            category: [apiData.kategori?.nama_kategori || apiData.kategori?.namaKategori || 'Tidak Berkategori', 'Detail'],
             
-            image: apiData.fotoProduk
-                ? apiData.fotoProduk
-                : 'https://images.unsplash.com/photo-1695048134431-e92db4cf1975?q=80&w=1000',
+            image: apiData.fotoProduk || 'https://images.unsplash.com/photo-1695048134431-e92db4cf1975?q=80&w=1000',
             
-            // ⭐ PERBAIKAN: Menggunakan fungsi calculateAverageRating dengan `mappedReviews`
             rating: calculateAverageRating(mappedReviews), 
-
-            // ⭐ PERBAIKAN: Menggunakan panjang dari `mappedReviews`
             totalReviews: mappedReviews.length,
         };
+
+        console.log('✨ Product loaded successfully:', product.value);
         
     } catch (err: any) {
-        console.error("Gagal mengambil detail produk:", err);
-        if (err.response && err.response.status === 404) {
-            error.value = `Produk dengan ID ${productId} tidak ditemukan.`;
-        } else {
-            error.value = "Gagal memuat detail produk. Cek koneksi server Laravel.";
-        }
-    } finally {
-        isLoading.value = false;
-    }
+        console.error("❌ Gagal mengambil detail produk:", err);
+        error.value = produkStore.error || reviewStore.error || "Gagal memuat detail produk. Pastikan server Laravel berjalan.";
+    } finally {
+        isLoading.value = false;
+        console.log('🏁 Loading finished');
+    }
 };
-
-
 
 
 // --- FUNGSI LOGIC MODAL ---
@@ -186,9 +183,14 @@ const submitReview = async () => {
             provinsiPengunjung: reviewForm.value.province,
         };
         
-        const response = await axios.post(REVIEW_API_URL, payload);
+        // Submit review using store
+        const result = await reviewStore.createReview(payload);
         
-        console.log("Ulasan berhasil dikirim:", response.data);
+        if (!result.success) {
+            throw new Error(result.message || 'Gagal mengirim ulasan');
+        }
+        
+        console.log("Ulasan berhasil dikirim:", result.data);
 
         // Setelah sukses, muat ulang data produk dan ulasan
         await fetchProductDetail(); 
@@ -198,26 +200,9 @@ const submitReview = async () => {
         openSuccessModal(); 
         
     } catch (err: any) {
-        // ... (Logic error handling Anda sebelumnya)
         console.error("Gagal mengirim ulasan:", err);
         
-        let errorMessage = "Gagal mengirim ulasan. Pastikan server Laravel berjalan dan koneksi internet stabil.";
-        
-        if (err.response) {
-            if (err.response.status === 422) {
-                const errors = err.response.data.errors;
-                let validationMessage = "Validasi Gagal (422):\n";
-                for (const key in errors) {
-                    validationMessage += `- ${errors[key][0]}\n`;
-                }
-                errorMessage = validationMessage;
-
-            } else if (err.response.data.message) {
-                errorMessage = `Error Server (${err.response.status}): ${err.response.data.message}`;
-            } else {
-                 errorMessage = `Error HTTP (${err.response.status}). Kemungkinan masalah CORS atau Endpoint salah.`;
-            }
-        }
+        let errorMessage = err.message || reviewStore.error || "Gagal mengirim ulasan. Pastikan server Laravel berjalan dan koneksi internet stabil.";
         
         alert(errorMessage); 
     }
