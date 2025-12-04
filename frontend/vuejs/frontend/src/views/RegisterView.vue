@@ -146,7 +146,7 @@ const validateField = (field: string) => {
     if (!val || val === '') { errors.value[field] = 'Wajib diisi'; return; }
 
     if (field === 'password') {
-        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()-+_])[A-Za-z\d@$!%*?&#^()-+_]{8,}$/;
         if (!regex.test(val as string)) errors.value.password = "Min 8 kar, Besar, kecil, angka & simbol.";
     }
     if (field === 'nik') {
