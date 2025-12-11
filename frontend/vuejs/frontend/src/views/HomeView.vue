@@ -30,10 +30,9 @@ const getIcon = (categoryName: string): string => {
         'Olahraga': '⚽',
         'Otomotif': '🚗',
         'Hobi & Koleksi': '🎨',
+        'Kesehatan': '🩺',
         'Laptop': '💻',
         'Charger': '🔌',
-        'Kesehatan': '🩺', // Tambahkan/sesuaikan
-        'Hobi': '🎨',       // Ubah dari 'Hobi & Koleksi' menjadi 'Hobi'
         'Aksesoris': '🎧',
     };
     return icons[categoryName] || '🏷️'; 
@@ -42,15 +41,19 @@ const getIcon = (categoryName: string): string => {
 // Fetch categories dari store
 const fetchCategories = async () => {
     try {
-        const response = await kategoriStore.fetchAllKategori();
-        const apiCategories = (response && response.data) ? response.data : response;
+        console.log('🏷️ Fetching categories...');
+        const apiCategories = await kategoriStore.fetchPublicKategoriList();
+        
+        console.log('📦 Raw categories from API:', apiCategories);
         
         if (apiCategories && apiCategories.length > 0) {
             categories.value = apiCategories.map((k: any) => ({
-                name: k.namaKategori, 
+                name: k.namaKategori, // Konsisten dengan KategoriResource
                 icon: getIcon(k.namaKategori)
             }));
-            console.log('✅ Categories loaded:', categories.value.length);
+            console.log('✅ Categories loaded:', categories.value.length, categories.value);
+        } else {
+            console.warn('⚠️ No categories returned from API');
         }
     } catch (err: any) {
         console.error("❌ Error loading categories:", err);
@@ -71,23 +74,22 @@ const fetchProducts = async () => {
             return;
         }
 
-        console.log('📦 Total products from API:', apiProducts.length);
+        console.log('📦 Total products from API:', apiProducts.length);
 
-        // Apply filters
-        let filteredProducts = [...apiProducts];
+        // Apply filters
+        let filteredProducts = [...apiProducts];
 
-        // Filter by category
-        if (activeCategory.value) {
-            filteredProducts = filteredProducts.filter((p: any) => {
-                // Gunakan key namaKategori yang benar dari Resource
-                const kategoriName = p.kategori?.namaKategori; 
-                return kategoriName === activeCategory.value;
-            });
-            console.log(`🏷️ After category filter "${activeCategory.value}":`, filteredProducts.length);
-        }
+        // Filter by category
+        if (activeCategory.value) {
+            filteredProducts = filteredProducts.filter((p: any) => {
+                const kategoriName = p.kategori?.namaKategori; // Konsisten dengan KategoriResource
+                return kategoriName === activeCategory.value;
+            });
+            console.log(`🏷️ After category filter "${activeCategory.value}":`, filteredProducts.length);
+        }
 
-        // 🚀 REVISI PENCARIAN LENGKAP
-        if (searchQuery.value.trim().length > 0) {
+        // 🚀 REVISI PENCARIAN LENGKAP
+        if (searchQuery.value.trim().length > 0) {
             const query = searchQuery.value.toLowerCase().trim();
             
             filteredProducts = filteredProducts.filter((p: any) => {

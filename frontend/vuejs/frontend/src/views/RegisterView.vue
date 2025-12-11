@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios'; 
 // Pastikan path import ini sesuai struktur folder Anda
 import { penjualRegister, getErrorMessage } from '@/services/api';
 
@@ -16,6 +15,11 @@ const provinces = ref<any[]>([]);
 const regencies = ref<any[]>([]); // Kota/Kab
 const districts = ref<any[]>([]); // Kecamatan
 const villages = ref<any[]>([]);  // Desa/Kelurahan
+
+// --- STATE LOADING untuk setiap dropdown ---
+const isLoadingRegencies = ref(false);
+const isLoadingDistricts = ref(false);
+const isLoadingVillages = ref(false);
 
 // --- STATE SELECTED IDs (Digunakan untuk fetch API anak) ---
 const selectedRegionIds = ref({
@@ -41,14 +45,21 @@ const fileKtp = ref<File | null>(null);
 
 // 1. Fetch Provinsi (Saat Mounted)
 const fetchProvinces = async () => {
+    console.log('🌍 Fetching provinces...');
     try {
-        const res = await axios.get(`${API_WILAYAH_BASE}/provinces.json`);
-        provinces.value = res.data;
-    } catch (e) { console.error("Gagal ambil provinsi", e); }
+        const res = await fetch(`${API_WILAYAH_BASE}/provinces.json`);
+        const data = await res.json();
+        console.log('✅ Provinces loaded:', data.length);
+        provinces.value = data;
+    } catch (e) { 
+        console.error("❌ Gagal ambil provinsi:", e); 
+    }
 };
 
 // 2. Handle Ganti Provinsi
 const handleProvinsiChange = async () => {
+    console.log('🏙️ Province changed:', selectedRegionIds.value.provinsi);
+    
     // 1. Ambil Nama Provinsi berdasarkan ID yang dipilih
     const prov = provinces.value.find(p => p.id === selectedRegionIds.value.provinsi);
     form.value.provinsi = prov ? prov.name : '';
@@ -63,15 +74,31 @@ const handleProvinsiChange = async () => {
     // 3. Validasi & Fetch Kota
     validateField('provinsi');
     if (selectedRegionIds.value.provinsi) {
+        isLoadingRegencies.value = true;
         try {
-            const res = await axios.get(`${API_WILAYAH_BASE}/regencies/${selectedRegionIds.value.provinsi}.json`);
-            regencies.value = res.data;
-        } catch (e) { console.error(e); }
+            console.log('📍 Fetching regencies for province:', selectedRegionIds.value.provinsi);
+            const res = await fetch(`${API_WILAYAH_BASE}/regencies/${selectedRegionIds.value.provinsi}.json`);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            console.log('✅ Regencies loaded:', data.length);
+            regencies.value = data;
+        } catch (e) { 
+            console.error('❌ Error loading regencies:', e);
+            alert('Gagal memuat data kabupaten/kota. Silakan coba lagi.');
+        } finally {
+            isLoadingRegencies.value = false;
+        }
     }
 };
 
 // 3. Handle Ganti Kota
 const handleKotaChange = async () => {
+    console.log('🏘️ City changed:', selectedRegionIds.value.kota);
+    
     const kota = regencies.value.find(r => r.id === selectedRegionIds.value.kota);
     form.value.kota = kota ? kota.name : '';
 
@@ -83,15 +110,31 @@ const handleKotaChange = async () => {
 
     validateField('kota');
     if (selectedRegionIds.value.kota) {
+        isLoadingDistricts.value = true;
         try {
-            const res = await axios.get(`${API_WILAYAH_BASE}/districts/${selectedRegionIds.value.kota}.json`);
-            districts.value = res.data;
-        } catch (e) { console.error(e); }
+            console.log('📍 Fetching districts for city:', selectedRegionIds.value.kota);
+            const res = await fetch(`${API_WILAYAH_BASE}/districts/${selectedRegionIds.value.kota}.json`);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            console.log('✅ Districts loaded:', data.length);
+            districts.value = data;
+        } catch (e) { 
+            console.error('❌ Error loading districts:', e);
+            alert('Gagal memuat data kecamatan. Silakan coba lagi.');
+        } finally {
+            isLoadingDistricts.value = false;
+        }
     }
 };
 
 // 4. Handle Ganti Kecamatan
 const handleKecamatanChange = async () => {
+    console.log('🏡 District changed:', selectedRegionIds.value.kecamatan);
+    
     const kec = districts.value.find(d => d.id === selectedRegionIds.value.kecamatan);
     form.value.kecamatan = kec ? kec.name : '';
 
@@ -102,17 +145,34 @@ const handleKecamatanChange = async () => {
 
     validateField('kecamatan');
     if (selectedRegionIds.value.kecamatan) {
+        isLoadingVillages.value = true;
         try {
-            const res = await axios.get(`${API_WILAYAH_BASE}/villages/${selectedRegionIds.value.kecamatan}.json`);
-            villages.value = res.data;
-        } catch (e) { console.error(e); }
+            console.log('📍 Fetching villages for district:', selectedRegionIds.value.kecamatan);
+            const res = await fetch(`${API_WILAYAH_BASE}/villages/${selectedRegionIds.value.kecamatan}.json`);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            console.log('✅ Villages loaded:', data.length);
+            villages.value = data;
+        } catch (e) { 
+            console.error('❌ Error loading villages:', e);
+            alert('Gagal memuat data desa/kelurahan. Silakan coba lagi.');
+        } finally {
+            isLoadingVillages.value = false;
+        }
     }
 };
 
 // 5. Handle Ganti Desa
 const handleDesaChange = () => {
+    console.log('🏠 Village changed:', selectedRegionIds.value.desa);
+    
     const desa = villages.value.find(v => v.id === selectedRegionIds.value.desa);
     form.value.desa = desa ? desa.name : '';
+    console.log('✅ Village selected:', form.value.desa);
     validateField('desa');
 };
 
@@ -312,31 +372,40 @@ const handleRegister = async () => {
 
                     <!-- KOTA/KABUPATEN -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Kota/Kabupaten <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Kota/Kabupaten <span class="text-red-500">*</span>
+                            <span v-if="isLoadingRegencies" class="text-xs text-purple-600 ml-2">⏳ Memuat...</span>
+                        </label>
                         <select 
                             v-model="selectedRegionIds.kota" 
                             @change="handleKotaChange"
-                            :disabled="!selectedRegionIds.provinsi"
+                            :disabled="!selectedRegionIds.provinsi || isLoadingRegencies"
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
                             :class="{'border-red-500': errors.kota}"
                         >
-                            <option value="" disabled>-- Pilih Kota/Kab --</option>
+                            <option value="" disabled>{{ isLoadingRegencies ? 'Memuat data...' : '-- Pilih Kota/Kab --' }}</option>
                             <option v-for="city in regencies" :key="city.id" :value="city.id">{{ city.name }}</option>
                         </select>
                         <p v-if="errors.kota" class="mt-1 text-xs text-red-600">{{ errors.kota }}</p>
+                        <p v-if="regencies.length === 0 && selectedRegionIds.provinsi && !isLoadingRegencies" class="mt-1 text-xs text-gray-500">
+                            Pilih provinsi terlebih dahulu
+                        </p>
                     </div>
 
                     <!-- KECAMATAN -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Kecamatan <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Kecamatan <span class="text-red-500">*</span>
+                            <span v-if="isLoadingDistricts" class="text-xs text-purple-600 ml-2">⏳ Memuat...</span>
+                        </label>
                         <select 
                             v-model="selectedRegionIds.kecamatan"
                             @change="handleKecamatanChange" 
-                            :disabled="!selectedRegionIds.kota"
+                            :disabled="!selectedRegionIds.kota || isLoadingDistricts"
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
                             :class="{'border-red-500': errors.kecamatan}"
                         >
-                            <option value="" disabled>-- Pilih Kecamatan --</option>
+                            <option value="" disabled>{{ isLoadingDistricts ? 'Memuat data...' : '-- Pilih Kecamatan --' }}</option>
                             <option v-for="dist in districts" :key="dist.id" :value="dist.id">{{ dist.name }}</option>
                         </select>
                         <p v-if="errors.kecamatan" class="mt-1 text-xs text-red-600">{{ errors.kecamatan }}</p>
@@ -344,15 +413,18 @@ const handleRegister = async () => {
 
                     <!-- DESA/KELURAHAN -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Kelurahan/Desa <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Kelurahan/Desa <span class="text-red-500">*</span>
+                            <span v-if="isLoadingVillages" class="text-xs text-purple-600 ml-2">⏳ Memuat...</span>
+                        </label>
                         <select 
                             v-model="selectedRegionIds.desa"
                             @change="handleDesaChange"
-                            :disabled="!selectedRegionIds.kecamatan"
+                            :disabled="!selectedRegionIds.kecamatan || isLoadingVillages"
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500 sm:text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
                             :class="{'border-red-500': errors.desa}"
                         >
-                            <option value="" disabled>-- Pilih Desa --</option>
+                            <option value="" disabled>{{ isLoadingVillages ? 'Memuat data...' : '-- Pilih Desa --' }}</option>
                             <option v-for="vill in villages" :key="vill.id" :value="vill.id">{{ vill.name }}</option>
                         </select>
                         <p v-if="errors.desa" class="mt-1 text-xs text-red-600">{{ errors.desa }}</p>

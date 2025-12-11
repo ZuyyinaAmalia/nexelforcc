@@ -57,6 +57,14 @@ export const useKategoriStore = defineStore('kategori', () => {
   }
 
   /**
+   * Fetch public kategori list (alias untuk fetchAllKategori)
+   * Digunakan di HomeView
+   */
+  async function fetchPublicKategoriList() {
+    return await fetchAllKategori()
+  }
+
+  /**
    * Fetch kategori by ID
    */
   async function fetchKategoriById(id) {
@@ -174,6 +182,7 @@ export const useKategoriStore = defineStore('kategori', () => {
 
     // Actions
     fetchAllKategori,
+    fetchPublicKategoriList, // Alias untuk HomeView
     fetchKategoriById,
     createKategori,
     editKategori,
