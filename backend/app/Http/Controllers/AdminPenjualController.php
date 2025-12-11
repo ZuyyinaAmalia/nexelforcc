@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PenjualDiterima;
 use App\Mail\PenjualDitolak;
+use App\Http\Resources\PenjualResource;
 
 class AdminPenjualController extends Controller
 {
@@ -25,7 +26,13 @@ class AdminPenjualController extends Controller
             // Debug: Log jumlah data yang ditemukan
             \Log::info('Jumlah penjual pending: ' . $penjuals->count());
             
-            return response()->json($penjuals);
+            // Gunakan PenjualResource untuk format URL foto dengan benar
+            // Map collection menjadi array untuk avoid wrapping
+            $data = $penjuals->map(function($penjual) {
+                return (new PenjualResource($penjual))->resolve();
+            });
+            
+            return response()->json($data);
 
         } catch (\Exception $e) {
             // KALAU ERROR, TAMPILKAN PESANNYA LANGSUNG
@@ -84,7 +91,7 @@ class AdminPenjualController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Status berhasil diperbarui',
-                'data' => $penjual->load('alamat') // Load alamat juga
+                'data' => new PenjualResource($penjual->load('alamat')) // Gunakan resource
             ]);
             
         } catch (\Exception $e) {

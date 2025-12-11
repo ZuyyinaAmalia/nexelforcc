@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -113,23 +114,105 @@ class PenjualController extends Controller
             'provinsi' => 'required|string',
         ]);
 
-        // 2. Handle Upload File to Supabase Storage
+        // 2. Handle Upload File to Supabase Storage menggunakan HTTP API
         $fotoPath = null;
         if ($request->hasFile('foto')) {
-            $file = $request->file('foto');
-            $filename = time() . '_foto_' . $file->getClientOriginalName();
-            $path = 'penjuals/foto_profil/' . $filename;
-            Storage::disk('supabase')->put($path, file_get_contents($file), 'public');
-            $fotoPath = $path;
+            try {
+                $file = $request->file('foto');
+                $filename = time() . '_foto_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', $file->getClientOriginalName());
+                $path = 'penjuals/foto_profil/' . $filename;
+                
+                // Upload menggunakan HTTP API Supabase
+                $projectId = env('SUPABASE_PROJECT_ID');
+                $serviceRoleKey = env('SUPABASE_SECRET');
+                $bucket = env('SUPABASE_BUCKET');
+                
+                \Log::info('Uploading foto profil', [
+                    'projectId' => $projectId,
+                    'bucket' => $bucket,
+                    'path' => $path
+                ]);
+                
+                $uploadUrl = "https://{$projectId}.supabase.co/storage/v1/object/{$bucket}/{$path}";
+                
+                $response = Http::timeout(30)->withHeaders([
+                    'Authorization' => "Bearer {$serviceRoleKey}",
+                    'Content-Type' => $file->getMimeType(),
+                ])->withBody(file_get_contents($file->getRealPath()), $file->getMimeType())
+                  ->post($uploadUrl);
+                
+                if ($response->successful()) {
+                    $fotoPath = $path;
+                    \Log::info('Foto profil uploaded successfully', ['path' => $fotoPath]);
+                } else {
+                    \Log::error('Failed to upload foto profil', [
+                        'status' => $response->status(),
+                        'body' => $response->body()
+                    ]);
+                    return response()->json([
+                        'error' => 'Gagal upload foto profil',
+                        'details' => $response->json()
+                    ], 500);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Exception during foto upload', [
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'error' => 'Gagal upload foto profil: ' . $e->getMessage()
+                ], 500);
+            }
         }
 
         $ktpPath = null;
         if ($request->hasFile('fotoKtp')) {
-            $file = $request->file('fotoKtp');
-            $filename = time() . '_ktp_' . $file->getClientOriginalName();
-            $path = 'penjuals/ktp/' . $filename;
-            Storage::disk('supabase')->put($path, file_get_contents($file), 'public');
-            $ktpPath = $path;
+            try {
+                $file = $request->file('fotoKtp');
+                $filename = time() . '_ktp_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', $file->getClientOriginalName());
+                $path = 'penjuals/ktp/' . $filename;
+                
+                // Upload menggunakan HTTP API Supabase
+                $projectId = env('SUPABASE_PROJECT_ID');
+                $serviceRoleKey = env('SUPABASE_SECRET');
+                $bucket = env('SUPABASE_BUCKET');
+                
+                \Log::info('Uploading foto KTP', [
+                    'projectId' => $projectId,
+                    'bucket' => $bucket,
+                    'path' => $path
+                ]);
+                
+                $uploadUrl = "https://{$projectId}.supabase.co/storage/v1/object/{$bucket}/{$path}";
+                
+                $response = Http::timeout(30)->withHeaders([
+                    'Authorization' => "Bearer {$serviceRoleKey}",
+                    'Content-Type' => $file->getMimeType(),
+                ])->withBody(file_get_contents($file->getRealPath()), $file->getMimeType())
+                  ->post($uploadUrl);
+                
+                if ($response->successful()) {
+                    $ktpPath = $path;
+                    \Log::info('Foto KTP uploaded successfully', ['path' => $ktpPath]);
+                } else {
+                    \Log::error('Failed to upload foto KTP', [
+                        'status' => $response->status(),
+                        'body' => $response->body()
+                    ]);
+                    return response()->json([
+                        'error' => 'Gagal upload foto KTP',
+                        'details' => $response->json()
+                    ], 500);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Exception during KTP upload', [
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'error' => 'Gagal upload foto KTP: ' . $e->getMessage()
+                ], 500);
+            }
         }
 
         // 3. Buat Data Penjual

@@ -19,11 +19,21 @@ composer dump-autoload
 ✅ `app/Helpers/StorageHelper.php` - Helper untuk manage file
 ✅ `app/Http/Resources/ProdukResource.php` - Auto generate URL publik
 ✅ `app/Http/Resources/PenjualResource.php` - Auto generate URL publik
-✅ `app/Http/Controllers/PenjualController.php` - Upload ke Supabase
-✅ `routes/api.php` - Upload produk ke Supabase
+✅ `app/Http/Controllers/PenjualController.php` - Upload foto profil & KTP ke Supabase via HTTP API
+✅ `routes/api.php` - Upload produk ke Supabase via HTTP API
 ✅ `composer.json` - Autoload helper
 
-### 2. **Yang Perlu Anda Lakukan:**
+### 2. **Struktur Folder di Supabase Storage:**
+
+```
+nexel-storage/
+├── produks/               # Foto produk ✅
+├── penjuals/
+│   ├── foto_profil/      # Foto profil penjual ✅
+│   └── ktp/              # Foto KTP penjual ✅
+```
+
+### 3. **Yang Perlu Anda Lakukan:**
 
 #### A. Setup Supabase Storage Bucket
 

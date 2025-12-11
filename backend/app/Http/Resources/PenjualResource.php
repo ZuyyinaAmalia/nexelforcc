@@ -12,15 +12,18 @@ class PenjualResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'nama_toko' => $this->namaToko,
-            'nama_penjual' => $this->namaPenjual,
-            'deskripsi_toko' => $this->deskripsiToko,
+            'namaToko' => $this->namaToko,
+            'namaPenjual' => $this->namaPenjual,
+            'deskripsiToko' => $this->deskripsiToko,
             'email' => $this->email,
-            'no_hp' => $this->noHp,
+            'noHp' => $this->noHp,
+            'nik' => $this->nik,
             'foto' => StorageHelper::getPublicUrl($this->foto),
-            'foto_ktp' => StorageHelper::getPublicUrl($this->fotoKtp),
+            'fotoKtp' => StorageHelper::getPublicUrl($this->fotoKtp),
             'status' => $this->status,
+            'created_at' => $this->created_at,
             // Mengambil kota dari relasi alamat
+            'alamat' => $this->whenLoaded('alamat'),
             'lokasi' => $this->whenLoaded('alamat', function() {
                 return $this->alamat->kota ?? 'Semarang';
             }, 'Semarang'),

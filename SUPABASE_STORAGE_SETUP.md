@@ -96,6 +96,12 @@ Test upload via API:
    - `penjuals/foto_profil/` - untuk foto profil penjual
    - `penjuals/ktp/` - untuk foto KTP penjual
 
+3. **Pastikan semua folder PUBLIC:**
+   - Klik bucket `nexel-storage`
+   - Klik tab **Policies**
+   - Pastikan ada policy "Public Access" untuk SELECT (read)
+   - Jika belum ada, buat policy baru dengan SQL di step 2
+
 ### 8. Struktur URL File
 
 File yang diupload akan memiliki URL publik:
