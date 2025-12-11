@@ -32,6 +32,8 @@ const getIcon = (categoryName: string): string => {
         'Hobi & Koleksi': '🎨',
         'Laptop': '💻',
         'Charger': '🔌',
+        'Kesehatan': '🩺', // Tambahkan/sesuaikan
+        'Hobi': '🎨',       // Ubah dari 'Hobi & Koleksi' menjadi 'Hobi'
         'Aksesoris': '🎧',
     };
     return icons[categoryName] || '🏷️'; 
@@ -40,12 +42,13 @@ const getIcon = (categoryName: string): string => {
 // Fetch categories dari store
 const fetchCategories = async () => {
     try {
-        const apiCategories = await kategoriStore.fetchPublicKategoriList();
+        const response = await kategoriStore.fetchAllKategori();
+        const apiCategories = (response && response.data) ? response.data : response;
         
         if (apiCategories && apiCategories.length > 0) {
             categories.value = apiCategories.map((k: any) => ({
-                name: k.nama_kategori || k.namaKategori, 
-                icon: getIcon(k.nama_kategori || k.namaKategori)
+                name: k.namaKategori, 
+                icon: getIcon(k.namaKategori)
             }));
             console.log('✅ Categories loaded:', categories.value.length);
         }
@@ -54,63 +57,74 @@ const fetchCategories = async () => {
     }
 };
 
-
 // Fetch products dari store dengan filter
 const fetchProducts = async () => {
-    try {
-        console.log('🔍 Fetching products...');
-        
-        // Fetch semua produk dari store
-        const apiProducts = await produkStore.fetchPublicProdukList();
-        
-        if (!apiProducts || apiProducts.length === 0) {
-            console.warn('⚠️ No products returned from API');
-            products.value = [];
-            return;
-        }
+    try {
+        console.log('🔍 Fetching products...');
+        
+        // Fetch semua produk dari store (Asumsi ini mengambil SEMUA produk untuk filter klien)
+        const apiProducts = await produkStore.fetchPublicProdukList();
+        
+        if (!apiProducts || apiProducts.length === 0) {
+            console.warn('⚠️ No products returned from API');
+            products.value = [];
+            return;
+        }
 
-        console.log('📦 Total products from API:', apiProducts.length);
+        console.log('📦 Total products from API:', apiProducts.length);
 
-        // Apply filters
-        let filteredProducts = [...apiProducts];
+        // Apply filters
+        let filteredProducts = [...apiProducts];
 
-        // Filter by category
-        if (activeCategory.value) {
-            filteredProducts = filteredProducts.filter((p: any) => {
-                const kategoriName = p.kategori?.nama_kategori || p.kategori?.namaKategori;
-                return kategoriName === activeCategory.value;
-            });
-            console.log(`🏷️ After category filter "${activeCategory.value}":`, filteredProducts.length);
-        }
+        // Filter by category
+        if (activeCategory.value) {
+            filteredProducts = filteredProducts.filter((p: any) => {
+                // Gunakan key namaKategori yang benar dari Resource
+                const kategoriName = p.kategori?.namaKategori; 
+                return kategoriName === activeCategory.value;
+            });
+            console.log(`🏷️ After category filter "${activeCategory.value}":`, filteredProducts.length);
+        }
 
-        // Filter by search query
-        if (searchQuery.value.trim().length > 0) {
-            const query = searchQuery.value.toLowerCase().trim();
-            filteredProducts = filteredProducts.filter((p: any) => {
-                const name = (p.namaProduk || '').toLowerCase();
-                const desc = (p.deskripsi || '').toLowerCase();
-                return name.includes(query) || desc.includes(query);
-            });
-            console.log(`🔎 After search filter "${searchQuery.value}":`, filteredProducts.length);
-        }
+        // 🚀 REVISI PENCARIAN LENGKAP
+        if (searchQuery.value.trim().length > 0) {
+            const query = searchQuery.value.toLowerCase().trim();
+            
+            filteredProducts = filteredProducts.filter((p: any) => {
+                const name = (p.namaProduk || '').toLowerCase();
+                const desc = (p.deskripsi || '').toLowerCase();
+                const kategoriName = (p.kategori?.namaKategori || '').toLowerCase(); // Kategori Produk
+                const storeName = (p.penjual?.nama_toko || '').toLowerCase();        // Nama Toko
+                // Asumsi key lokasi di objek penjual adalah kabupaten_kota dan propinsi
+                const location = (p.penjual?.lokasi || '').toLowerCase(); // 🚨 Perubahan: Menggunakan KEY 'lokasi'
 
-        // Map to display format
-        products.value = filteredProducts.map((p: any) => ({
-            id: p.id,
-            name: p.namaProduk, 
-            price: p.harga, 
-            rating: p.rating || 4.5, 
-            totalReviews: p.totalReviews || 0, 
-            nama_toko: p.penjual?.nama_toko || 'Toko Tidak Diketahui', 
-            image: p.fotoProduk || 'https://via.placeholder.com/400x400?text=No+Image', 
-        }));
+                return name.includes(query) || 
+                       desc.includes(query) ||
+                       kategoriName.includes(query) || // Cari di Nama Kategori
+                       storeName.includes(query) ||    // Cari di Nama Toko
+                       location.includes(query);
+            });
+            console.log(`🔎 After search filter "${searchQuery.value}":`, filteredProducts.length);
+        }
 
-        console.log('✅ Products ready for display:', products.value.length);
+        // Map to display format
+        // (Tidak ada perubahan di sini, sudah benar)
+        products.value = filteredProducts.map((p: any) => ({
+            id: p.id,
+            name: p.namaProduk, 
+            price: p.harga, 
+            rating: p.rating || 4.5, 
+            totalReviews: p.totalReviews || 0, 
+            nama_toko: p.penjual?.nama_toko || 'Toko Tidak Diketahui', 
+            image: p.fotoProduk || 'https://via.placeholder.com/400x400?text=No+Image', 
+        }));
 
-    } catch (err: any) {
-        console.error("❌ Error fetching products:", err);
-        products.value = [];
-    }
+        console.log('✅ Products ready for display:', products.value.length);
+
+    } catch (err: any) {
+        console.error("❌ Error fetching products:", err);
+        products.value = [];
+    }
 };
 
 // Live search dengan debounce
