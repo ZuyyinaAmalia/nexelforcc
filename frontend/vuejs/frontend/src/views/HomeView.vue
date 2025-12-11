@@ -117,7 +117,7 @@ const fetchProducts = async () => {
             price: p.harga, 
             rating: p.rating || 4.5, 
             totalReviews: p.totalReviews || 0, 
-            nama_toko: p.penjual?.nama_toko || 'Toko Tidak Diketahui', 
+            nama_toko: p.penjual?.namaToko || 'Toko Tidak Diketahui', 
             image: p.fotoProduk || 'https://via.placeholder.com/400x400?text=No+Image', 
         }));
 
