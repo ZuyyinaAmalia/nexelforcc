@@ -115,7 +115,7 @@ const fetchProducts = async () => {
             id: p.id,
             name: p.namaProduk, 
             price: p.harga, 
-            rating: p.rating || 4.5, 
+            rating: p.rating || 0.0, 
             totalReviews: p.totalReviews || 0, 
             nama_toko: p.penjual?.namaToko || 'Toko Tidak Diketahui', 
             image: p.fotoProduk || 'https://via.placeholder.com/400x400?text=No+Image', 
